@@ -3,3 +3,5 @@ data/sessions/
 data/*.db
 *.log
 .env
+
+public/uploads/

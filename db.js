@@ -22,9 +22,17 @@ function getDB() {
   db.raw = {
     exec: function(sql) {
       var params = Array.prototype.slice.call(arguments, 1);
+      var isSelect = sql.trim().toUpperCase().startsWith('SELECT');
+      var stmt = db.prepare(sql);
       if (params.length > 0) {
         var p = Array.isArray(params[0]) ? params[0] : params;
-        return db.prepare(sql).run.apply(db.prepare(sql), p);
+        if (isSelect) {
+          return stmt.all.apply(stmt, p);
+        }
+        return stmt.run.apply(stmt, p);
+      }
+      if (isSelect) {
+        return stmt.all();
       }
       return db.exec(sql);
     }

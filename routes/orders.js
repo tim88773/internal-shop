@@ -18,10 +18,10 @@ function reqAdmin(req, res, next) {
 
 // Status labels
 const STATUS_LABELS = {
-  'pending': '待处理',
+  'pending': '待處理',
   'accepted': '已接受',
-  'shipped': '已出货',
-  'delivered': '已送达',
+  'shipped': '已出貨',
+  'delivered': '已送達',
   'cancelled': '已取消'
 };
 
@@ -86,7 +86,7 @@ router.post('/checkout', reqAuth, (req, res) => {
       if (!p) throw new Error('Not found');
       if (p.quantity < item.qty) throw new Error('Stock');
     }
-    db.raw.exec("INSERT INTO orders (employee_id, notes, status) VALUES (?, ?, 'accepted')", [req.session.user.id, req.body.notes || '']);
+    db.raw.exec('INSERT INTO orders (employee_id, notes) VALUES (?, ?)', [req.session.user.id, req.body.notes || '']);
     const oid = db.raw.exec('SELECT MAX(id) as id FROM orders')[0].id;
     for (const item of cart) {
       const p = db.prepare('SELECT price FROM products WHERE id = ?').get(item.productId);
@@ -134,16 +134,17 @@ router.post('/:id/cancel', reqAuth, (req, res) => {
   if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
   // Only admin or the order owner can cancel
   if (req.session.user.role !== 'admin' && o.employee_id !== req.session.user.id) {
-    req.flash('error', '无权取消此订单');
+    req.flash('error', '無權取消此訂單');
     return res.redirect('/orders/' + o.id);
   }
-  // Admin can cancel any non-delivered order; regular users only pending
+  // Cannot cancel if already delivered or cancelled
   if (o.status === 'delivered' || o.status === 'cancelled') {
-    req.flash('error', '该订单已无法取消');
+    req.flash('error', '該訂單已無法取消');
     return res.redirect('/orders/' + o.id);
   }
+  // Consumer can only cancel pending orders
   if (req.session.user.role !== 'admin' && o.status !== 'pending') {
-    req.flash('error', '订单已接受，无法取消');
+    req.flash('error', '訂單已接受，無法取消');
     return res.redirect('/orders/' + o.id);
   }
   const cancel = db.transaction(() => {

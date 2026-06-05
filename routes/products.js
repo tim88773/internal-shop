@@ -88,7 +88,7 @@ router.get('/', requireAuth, (req, res) => {
   const products = params.length ? db.prepare(sql).all(...params) : db.prepare(sql).all();
   const categories = db.prepare('SELECT * FROM categories ORDER BY name').all();
 
-  res.render('products/index', { title: '商品浏览', products, categories, search, categoryId: categoryId || '' });
+  res.render('products/index', { title: '商品瀏覽', products, categories, search, categoryId: categoryId || '' });
 });
 
 // GET /manage — Product management panel
@@ -117,7 +117,7 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
   const { name, description, price, original_price, category_id, quantity, defect_reason } = req.body;
 
   if (!name || price === undefined || price === '') {
-    req.flash('error', '商品名称与价格为必填');
+    req.flash('error', '商品名稱与價格为必填');
     return res.redirect('/products/new');
   }
 
@@ -174,7 +174,7 @@ router.get('/:id', requireAuth, (req, res) => {
   `).get(pid);
 
   if (!product) {
-    req.flash('error', '找不到该商品');
+    req.flash('error', '找不到該商品');
     return res.redirect('/products');
   }
 
@@ -198,12 +198,12 @@ router.get('/:id/edit', requireAdmin, (req, res) => {
   const db = getDB();
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id));
   if (!product) {
-    req.flash('error', '找不到该商品');
+    req.flash('error', '找不到該商品');
     return res.redirect('/products/manage');
   }
   const categories = db.prepare('SELECT * FROM categories ORDER BY name').all();
   const images = getProductImages(db, Number(req.params.id));
-  res.render('products/edit', { title: '编辑商品', product, categories, images });
+  res.render('products/edit', { title: '編輯商品', product, categories, images });
 });
 
 // POST /:id/edit — Update product
@@ -211,7 +211,7 @@ router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
   const { name, description, price, original_price, category_id, quantity, defect_reason, is_active } = req.body;
 
   if (!name || price === undefined || price === '') {
-    req.flash('error', '商品名称与价格为必填');
+    req.flash('error', '商品名稱与價格为必填');
     return res.redirect('/products/' + req.params.id + '/edit');
   }
 
@@ -263,7 +263,7 @@ router.post('/:id/toggle', requireAdmin, (req, res) => {
   const db = getDB();
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id));
   if (!product) {
-    req.flash('error', '找不到该商品');
+    req.flash('error', '找不到該商品');
     return res.redirect('/products/manage');
   }
 

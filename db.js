@@ -130,7 +130,7 @@ function getDB() {
     if (!row) {
       const hashed = bcrypt.hashSync('admin123', 10);
       db.raw.exec('INSERT INTO employees (username, password, display_name, role) VALUES (?, ?, ?, ?)',
-        ['admin', hashed, '管理员', 'admin']);
+        ['admin', hashed, '管理員', 'admin']);
     }
 
     // Test consumer account
@@ -138,7 +138,7 @@ function getDB() {
     if (!test) {
       const hashed = bcrypt.hashSync('test123', 10);
       db.raw.exec('INSERT INTO employees (username, password, display_name, email, role) VALUES (?, ?, ?, ?, ?)',
-        ['test', hashed, '测试消费者', 'test@shop.local', 'user']);
+        ['test', hashed, '測試消費者', 'test@shop.local', 'user']);
     }
   }
   return db;

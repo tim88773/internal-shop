@@ -43,7 +43,7 @@
 
         <% if (product.defect_reason) { %>
         <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:12px;margin-bottom:16px;">
-          <div style="font-weight:600;font-size:13px;color:#92400e;margin-bottom:4px;">&#x26A0; 瑕疵说明</div>
+          <div style="font-weight:600;font-size:13px;color:#92400e;margin-bottom:4px;">&#x26A0; 瑕疵說明</div>
           <div style="font-size:14px;color:#78350f;"><%= product.defect_reason %></div>
         </div>
         <% } %>
@@ -56,7 +56,7 @@
         <% } %>
 
         <div style="margin-bottom:16px;">
-          <div style="font-weight:600;font-size:13px;color:var(--text-secondary);margin-bottom:4px;">库存</div>
+          <div style="font-weight:600;font-size:13px;color:var(--text-secondary);margin-bottom:4px;">庫存</div>
           <div style="font-size:14px;">
             <span style="color:<%= product.quantity <= 3 ? 'var(--danger)' : 'var(--success)' %>;font-weight:600;">
               &#x1F4E6; <%= product.quantity %> 件
@@ -71,17 +71,17 @@
         <form action="/orders/cart/add" method="POST" style="display:flex;gap:12px;align-items:center;padding-top:16px;border-top:1px solid var(--border);">
           <input type="hidden" name="product_id" value="<%= product.id %>">
           <div>
-            <label for="qty" style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px;">数量</label>
+            <label for="qty" style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px;">數量</label>
             <input type="number" id="qty" name="quantity" value="1" min="1" max="<%= product.quantity %>" style="width:70px;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
           </div>
-          <button type="submit" class="btn btn-primary" style="padding:12px 28px;font-size:15px;align-self:flex-end;">&#x1F6D2; 加入购物车</button>
+          <button type="submit" class="btn btn-primary" style="padding:12px 28px;font-size:15px;align-self:flex-end;">&#x1F6D2; 加入購物車</button>
         </form>
         <% if (inCart > 0) { %>
-          <div style="margin-top:8px;font-size:13px;color:var(--success);">已在购物车中的数量：<%= inCart %></div>
+          <div style="margin-top:8px;font-size:13px;color:var(--success);">已在購物車中的數量：<%= inCart %></div>
         <% } %>
         <% } else { %>
           <div style="padding:16px;text-align:center;border-top:1px solid var(--border);color:var(--text-secondary);">
-            <%= product.is_active ? '暂时缺货' : '该商品已下架' %>
+            <%= product.is_active ? '暫時缺貨' : '該商品已下架' %>
           </div>
         <% } %>
       </div>
@@ -90,7 +90,7 @@
 
   <% if (related.length > 0) { %>
   <div class="card" style="margin-top:24px;">
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:16px;">推荐商品</h2>
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:16px;">推薦商品</h2>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">
       <% related.forEach(function(r) { %>
       <a href="/products/<%= r.id %>" style="text-decoration:none;color:inherit;">

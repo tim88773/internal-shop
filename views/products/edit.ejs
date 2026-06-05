@@ -50,9 +50,9 @@
       </div>
 
       <div class="form-group">
-        <label for="cover">封面图片</label>
+        <label for="cover">封面圖片</label>
         <input type="file" id="cover" name="cover" accept="image/jpeg,image/png,image/gif,image/webp">
-        <div class="text-muted" style="font-size:12px;margin-top:4px;">显示在商品列表的封面照</div>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">顯示在商品列表的封面照</div>
         <% if (product.image_url) { %>
           <div style="margin-top:8px;">
             <img src="<%= product.image_url %>" alt="封面" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
@@ -62,16 +62,16 @@
       </div>
 
       <div class="form-group">
-        <label for="gallery">商品照片（可多张）</label>
+        <label for="gallery">商品照片（可多張）</label>
         <input type="file" id="gallery" name="gallery" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
-        <div class="text-muted" style="font-size:12px;margin-top:4px;">上传新照片将取代全部旧照片</div>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">上傳新照片將取代全部舊照片</div>
         <% if (images && images.length > 0) { %>
           <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
             <% images.forEach(function(img) { %>
               <img src="<%= img.image_url %>" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid var(--border);">
             <% }); %>
           </div>
-          <div class="text-muted" style="font-size:12px;margin-top:4px;">目前 <%= images.length %> 张照片</div>
+          <div class="text-muted" style="font-size:12px;margin-top:4px;">目前 <%= images.length %> 張照片</div>
         <% } %>
       </div>
 

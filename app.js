@@ -109,6 +109,4 @@ try { getDB(); console.log('[Shop] DB ready'); } catch (e) { console.error('[Sho
 
 app.listen(PORT, () => {
   console.log('[Internal Shop] Running at http://localhost:' + PORT);
-  console.log('[Internal Shop] Admin: admin / admin123');
-  console.log('[Internal Shop] Test: test / test123');
 });

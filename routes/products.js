@@ -206,7 +206,10 @@ router.get('/:id/edit', requireAdmin, (req, res) => {
   }
   const categories = db.prepare('SELECT * FROM categories ORDER BY name').all();
   const images = getProductImages(db, Number(req.params.id));
-  res.render('products/edit', { title: '\u7de8\u8f2f\u5546\u54c1', product, categories, images });
+  var pSizes = []; var pColors = [];
+  try { pSizes = JSON.parse(product.sizes || '').join(', '); } catch(e) {}
+  try { pColors = JSON.parse(product.colors || '').join(', '); } catch(e) {}
+  res.render('products/edit', { title: '\u7de8\u8f2f\u5546\u54c1', product, categories, images, editSizes: pSizes, editColors: pColors });
 });
 
 // POST /:id/edit — Update product

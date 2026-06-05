@@ -45,7 +45,7 @@
           <thead>
             <tr>
               <th>訂單編號</th>
-              <th>下單員工</th>
+              <% if (currentUser.role === 'admin') { %><th>下單員工</th><% } %>
               <th>品項數</th>
               <th>狀態</th>
               <th>下單時間</th>
@@ -56,7 +56,7 @@
             <% recentOrders.forEach(function(o) { %>
             <tr>
               <td>#<%= o.id %></td>
-              <td><%= o.display_name %></td>
+              <% if (currentUser.role === 'admin') { %><td><%= o.display_name %></td><% } %>
               <td><%= o.items_count %></td>
               <td><span class="status status-<%= o.status %>"><%= o.status === 'pending' ? '待處理' : o.status === 'accepted' ? '已接受' : o.status === 'shipped' ? '已出貨' : o.status === 'delivered' ? '已送達' : o.status === 'cancelled' ? '已取消' : o.status %></span></td>
               <td class="text-muted"><%= new Date(o.created_at).toLocaleString('zh-TW') %></td>

@@ -7,7 +7,7 @@ var cj = {};
 
 function login() {
   return new Promise(function(r) {
-    var b = qs.stringify({username:'admin',password:'admin123'});
+    var b = qs.stringify({username:'test',password:'test123'});
     var req = http.request({hostname:'localhost',port:3000,path:'/login',method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(b)}},function(res) {
       var sc = res.headers['set-cookie'];
       if (sc) { (Array.isArray(sc)?sc:[sc]).forEach(function(c){var m=c.split(';')[0].split('=');cj[m[0]]=m[1];}); }

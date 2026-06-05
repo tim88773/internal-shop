@@ -28,37 +28,18 @@ app.use((req, res, next) => {
   if (start >= 0) {
     var valStart = start + COOKIE_NAME.length + 1;
     var valEnd = raw.indexOf(';', valStart);
-    sid = valEnd >= 0 ? raw.substring(valStart, valEnd).trim() : raw.substring(valStart).trim();
+    if (valEnd < 0) valEnd = raw.length;
+    sid = raw.substring(valStart, valEnd).trim();
   }
-
-  // Create or retrieve session
-  if (!sid || !sessions[sid]) {
-    sid = crypto.randomBytes(16).toString('hex');
-    sessions[sid] = { _cart: [] };
+  var session = sessions[sid];
+  if (session) {
+    req.session = session;
+  } else {
+    sid = crypto.randomUUID();
+    sessions[sid] = { _id: sid };
+    req.session = sessions[sid];
   }
-  req.session = sessions[sid];
-  req.sessionID = sid;
-
-  // Send session cookie
-  var existingCookies = [];
-  var origSetHeader = res.setHeader.bind(res);
-  res.setHeader = function(name, val) {
-    if (name.toLowerCase() === 'set-cookie') {
-      existingCookies = existingCookies.concat(Array.isArray(val) ? val : [val]);
-      return;
-    }
-    return origSetHeader(name, val);
-  };
-  // Override end to set cookie before sending
-  var origEnd = res.end.bind(res);
-  res.end = function(data, encoding, callback) {
-    if (typeof data === 'function') { callback = data; data = null; encoding = null; }
-    else if (typeof encoding === 'function') { callback = encoding; encoding = null; }
-    var allCookies = existingCookies.slice();
-    allCookies.push(COOKIE_NAME + '=' + sid + '; Path=/; HttpOnly');
-    origSetHeader('Set-Cookie', allCookies);
-    return origEnd(data, encoding, callback);
-  };
+  res.setHeader('Set-Cookie', COOKIE_NAME + '=' + sid + '; HttpOnly; Path=/');
 
   // Flash messages
   req.flash = function(type, msg) {
@@ -95,7 +76,13 @@ app.get('/dashboard', (req, res) => {
   const ac = db.prepare("SELECT COUNT(1) as cnt FROM orders WHERE status != 'cancelled'").get();
   const te = db.prepare("SELECT COUNT(1) as cnt FROM employees").get();
   const lc = db.prepare("SELECT COUNT(1) as cnt FROM products WHERE is_active = 1 AND quantity <= 3").get();
-  const ro = db.prepare("SELECT o.id, o.created_at, o.status, e.display_name, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count FROM orders o JOIN employees e ON e.id = o.employee_id ORDER BY o.created_at DESC LIMIT 10").all();
+
+  var ro;
+  if (req.session.user.role === 'admin') {
+    ro = db.prepare("SELECT o.id, o.created_at, o.status, e.display_name, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count FROM orders o JOIN employees e ON e.id = o.employee_id ORDER BY o.created_at DESC LIMIT 10").all();
+  } else {
+    ro = db.prepare("SELECT o.id, o.created_at, o.status, e.display_name, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.employee_id = ? ORDER BY o.created_at DESC LIMIT 10").all(req.session.user.id);
+  }
 
   res.render('dashboard', { title: 'Dashboard', stats: { productCount: pc, activeOrders: ac, totalEmployees: te, lowStockCount: lc }, recentOrders: ro });
 });

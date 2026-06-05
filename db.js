@@ -1,146 +1,116 @@
-const alasql = require('alasql');
+const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
+const path = require('path');
+const fs = require('fs');
+
+const DATA_DIR = path.join(__dirname, 'data');
+const DB_PATH = path.join(DATA_DIR, 'shop.db');
 
 let db = null;
 
-function wrapDB(rawDb) {
-  const wrapped = {
-    raw: rawDb,
+function getDB() {
+  if (db) return db;
 
-    prepare(sql) {
-      const adapter = {
-        run(...params) {
-          const p = params.length > 0 && Array.isArray(params[0]) ? params[0] : params;
-          return rawDb.exec(sql, p.length > 0 ? p : undefined);
-        },
-        get(...params) {
-          const rows = this.all(...params);
-          return rows && rows.length > 0 ? rows[0] : undefined;
-        },
-        all(...params) {
-          const p = params.length > 0 && Array.isArray(params[0]) ? params[0] : params;
-          const result = rawDb.exec(sql, p.length > 0 ? p : undefined);
-          return Array.isArray(result) ? result : [];
-        }
-      };
-      return adapter;
-    },
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
 
-    run(sql, ...params) {
-      const p = params.length > 0 && Array.isArray(params[0]) ? params[0] : params;
-      return rawDb.exec(sql, p.length > 0 ? p : undefined);
-    },
+  db = new Database(DB_PATH);
+  db.pragma('journal_mode = WAL');
 
-    exec(sql) {
-      return rawDb.exec(sql);
-    },
-
-    transaction(fn) {
-      return function (...args) {
-        rawDb.exec('BEGIN TRANSACTION');
-        try {
-          const result = fn(...args);
-          rawDb.exec('COMMIT TRANSACTION');
-          return result;
-        } catch (e) {
-          rawDb.exec('ROLLBACK TRANSACTION');
-          throw e;
-        }
-      };
+  // Compatibility layer for existing route code using db.raw.exec()
+  db.raw = {
+    exec: function(sql) {
+      var params = Array.prototype.slice.call(arguments, 1);
+      if (params.length > 0) {
+        var p = Array.isArray(params[0]) ? params[0] : params;
+        return db.prepare(sql).run.apply(db.prepare(sql), p);
+      }
+      return db.exec(sql);
     }
   };
-  return wrapped;
-}
 
-function getDB() {
-  if (!db) {
-    db = wrapDB(new alasql.Database());
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS employees (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      email TEXT,
+      role TEXT NOT NULL DEFAULT 'user',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      price REAL NOT NULL,
+      original_price REAL,
+      category_id INTEGER,
+      quantity INTEGER NOT NULL DEFAULT 0,
+      defect_reason TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      image_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (category_id) REFERENCES categories(id)
+    )
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (employee_id) REFERENCES employees(id)
+    )
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      quantity INTEGER NOT NULL,
+      unit_price REAL NOT NULL,
+      FOREIGN KEY (order_id) REFERENCES orders(id),
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    )
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS product_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL,
+      image_url TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      is_cover INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    )
+  `);
 
-    db.raw.exec(`
-      CREATE TABLE IF NOT EXISTS employees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username STRING UNIQUE NOT NULL,
-        password STRING NOT NULL,
-        display_name STRING NOT NULL,
-        email STRING,
-        role STRING NOT NULL DEFAULT 'user',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    db.raw.exec(`
-      CREATE TABLE IF NOT EXISTS categories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name STRING UNIQUE NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    db.raw.exec(`
-      CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name STRING NOT NULL,
-        description STRING,
-        price NUMBER NOT NULL,
-        original_price NUMBER,
-        category_id INTEGER,
-        quantity INTEGER NOT NULL DEFAULT 0,
-        defect_reason STRING,
-        is_active INTEGER NOT NULL DEFAULT 1,
-        image_url STRING,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (category_id) REFERENCES categories(id)
-      )
-    `);
-    db.raw.exec(`
-      CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id INTEGER NOT NULL,
-        status STRING NOT NULL DEFAULT 'pending',
-        notes STRING,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (employee_id) REFERENCES employees(id)
-      )
-    `);
-    db.raw.exec(`
-      CREATE TABLE IF NOT EXISTS order_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        order_id INTEGER NOT NULL,
-        product_id INTEGER NOT NULL,
-        quantity INTEGER NOT NULL,
-        unit_price NUMBER NOT NULL,
-        FOREIGN KEY (order_id) REFERENCES orders(id),
-        FOREIGN KEY (product_id) REFERENCES products(id)
-      )
-    `);
-
-    
-    db.raw.exec(`
-      CREATE TABLE IF NOT EXISTS product_images (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        product_id INTEGER NOT NULL,
-        image_url STRING NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        is_cover INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (product_id) REFERENCES products(id)
-      )
-    `);
-
-// Default admin account
-    const row = db.prepare('SELECT id FROM employees WHERE username = ?').get('admin');
-    if (!row) {
-      const hashed = bcrypt.hashSync('admin123', 10);
-      db.raw.exec('INSERT INTO employees (username, password, display_name, role) VALUES (?, ?, ?, ?)',
-        ['admin', hashed, '管理員', 'admin']);
-    }
-
-    // Test consumer account
-    const test = db.prepare('SELECT id FROM employees WHERE username = ?').get('test');
-    if (!test) {
-      const hashed = bcrypt.hashSync('test123', 10);
-      db.raw.exec('INSERT INTO employees (username, password, display_name, email, role) VALUES (?, ?, ?, ?, ?)',
-        ['test', hashed, '測試消費者', 'test@shop.local', 'user']);
-    }
+  // Default admin account
+  var row = db.prepare("SELECT id FROM employees WHERE username = ?").get('admin');
+  if (!row) {
+    var hashed = bcrypt.hashSync('admin123', 10);
+    db.prepare("INSERT INTO employees (username, password, display_name, role) VALUES (?, ?, ?, ?)").run('admin', hashed, '\u7ba1\u7406\u54e1', 'admin');
   }
+
+  // Test consumer account
+  var test = db.prepare("SELECT id FROM employees WHERE username = ?").get('test');
+  if (!test) {
+    var hashed = bcrypt.hashSync('test123', 10);
+    db.prepare("INSERT INTO employees (username, password, display_name, email, role) VALUES (?, ?, ?, ?, ?)").run('test', hashed, '\u6e2c\u8a66\u6d88\u8cbb\u8005', 'test@shop.local', 'user');
+  }
+
   return db;
 }
 

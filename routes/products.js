@@ -27,6 +27,32 @@ function requireAuth(req, res, next) {
   next();
 }
 
+// Image upload middleware: cover (single) + gallery (multiple)
+const uploadFields = upload.fields([
+  { name: 'cover', maxCount: 1 },
+  { name: 'gallery', maxCount: 10 }
+]);
+
+// Helper: save gallery images to DB
+function saveGallery(db, productId, files) {
+  if (!files || files.length === 0) return;
+  for (var i = 0; i < files.length; i++) {
+    var url = '/uploads/' + files[i].filename;
+    db.raw.exec(
+      'INSERT INTO product_images (product_id, image_url, sort_order) VALUES (?, ?, ?)',
+      [productId, url, i]
+    );
+  }
+}
+
+// Helper: get all images for a product
+function getProductImages(db, productId) {
+  return db.prepare(
+    'SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order'
+  ).all(Number(productId));
+}
+
+// GET / — Browse active products (consumer view)
 router.get('/', requireAuth, (req, res) => {
   const db = getDB();
   const categoryId = req.query.category || null;
@@ -56,6 +82,7 @@ router.get('/', requireAuth, (req, res) => {
   res.render('products/index', { title: '商品浏览', products, categories, search, categoryId: categoryId || '' });
 });
 
+// GET /manage — Product management panel
 router.get('/manage', requireAuth, (req, res) => {
   const db = getDB();
   const products = db.prepare(`
@@ -69,13 +96,15 @@ router.get('/manage', requireAuth, (req, res) => {
   res.render('products/manage', { title: '商品管理', products, categories });
 });
 
+// GET /new — New product form
 router.get('/new', requireAuth, (req, res) => {
   const db = getDB();
   const categories = db.prepare('SELECT * FROM categories ORDER BY name').all();
   res.render('products/new', { title: '新增商品', categories, product: {} });
 });
 
-router.post('/new', requireAuth, upload.single('image'), (req, res) => {
+// POST /new — Create product
+router.post('/new', requireAuth, uploadFields, (req, res) => {
   const { name, description, price, original_price, category_id, quantity, defect_reason } = req.body;
 
   if (!name || price === undefined || price === '') {
@@ -83,27 +112,79 @@ router.post('/new', requireAuth, upload.single('image'), (req, res) => {
     return res.redirect('/products/new');
   }
 
-  // Handle uploaded image
-  let image_url = '';
-  if (req.file) {
-    image_url = '/uploads/' + req.file.filename;
+  const db = getDB();
+
+  // Handle cover image
+  var coverUrl = '';
+  if (req.files && req.files.cover && req.files.cover.length > 0) {
+    coverUrl = '/uploads/' + req.files.cover[0].filename;
+  } else if (req.files && req.files.gallery && req.files.gallery.length > 0) {
+    // Use first gallery image as cover if no explicit cover
+    coverUrl = '/uploads/' + req.files.gallery[0].filename;
   }
 
-  const db = getDB();
   db.raw.exec(
     'INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [name, description || '', parseFloat(price) || 0,
      original_price ? parseFloat(original_price) : null,
-     category_id ? parseInt(category_id) : null,
+     category_id ? Number(category_id) : null,
      parseInt(quantity) || 0,
      defect_reason || '',
-     image_url || null]
+     coverUrl || null]
   );
+
+  var pid = db.raw.exec('SELECT MAX(id) as id FROM products')[0].id;
+
+  // Save gallery images
+  if (req.files && req.files.gallery) {
+    var galleryFiles = req.files.gallery;
+    // Skip first if it was used as cover
+    var startIdx = (!req.files.cover || req.files.cover.length === 0) && galleryFiles.length > 0 ? 1 : 0;
+    for (var i = startIdx; i < galleryFiles.length; i++) {
+      var url = '/uploads/' + galleryFiles[i].filename;
+      db.raw.exec(
+        'INSERT INTO product_images (product_id, image_url, sort_order) VALUES (?, ?, ?)',
+        [pid, url, i - startIdx]
+      );
+    }
+  }
 
   req.flash('success', '商品\u300c' + name + '\u300d已上架');
   res.redirect('/products/manage');
 });
 
+// GET /:id — Product detail page
+router.get('/:id', requireAuth, (req, res) => {
+  const db = getDB();
+  var pid = Number(req.params.id);
+  const product = db.prepare(`
+    SELECT p.*, c.name as category_name
+    FROM products p
+    LEFT JOIN categories c ON c.id = p.category_id
+    WHERE p.id = ?
+  `).get(pid);
+
+  if (!product) {
+    req.flash('error', '找不到该商品');
+    return res.redirect('/products');
+  }
+
+  const images = getProductImages(db, pid);
+  const related = db.prepare(
+    'SELECT * FROM products WHERE is_active = 1 AND id != ? ORDER BY created_at DESC LIMIT 4'
+  ).all(pid);
+
+  // Check if in cart
+  var inCart = 0;
+  if (req.session._cart) {
+    var found = req.session._cart.find(function(c) { return c.productId === pid; });
+    if (found) inCart = found.qty;
+  }
+
+  res.render('products/detail', { title: product.name, product, images, related, inCart });
+});
+
+// GET /:id/edit — Edit product form
 router.get('/:id/edit', requireAuth, (req, res) => {
   const db = getDB();
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id));
@@ -112,10 +193,12 @@ router.get('/:id/edit', requireAuth, (req, res) => {
     return res.redirect('/products/manage');
   }
   const categories = db.prepare('SELECT * FROM categories ORDER BY name').all();
-  res.render('products/edit', { title: '编辑商品', product, categories });
+  const images = getProductImages(db, Number(req.params.id));
+  res.render('products/edit', { title: '编辑商品', product, categories, images });
 });
 
-router.post('/:id/edit', requireAuth, upload.single('image'), (req, res) => {
+// POST /:id/edit — Update product
+router.post('/:id/edit', requireAuth, uploadFields, (req, res) => {
   const { name, description, price, original_price, category_id, quantity, defect_reason, is_active } = req.body;
 
   if (!name || price === undefined || price === '') {
@@ -124,24 +207,41 @@ router.post('/:id/edit', requireAuth, upload.single('image'), (req, res) => {
   }
 
   const db = getDB();
+  var pid = Number(req.params.id);
 
-  // Handle uploaded image
-  let image_url_sql = '';
-  const params = [name, description || '', parseFloat(price) || 0,
-     original_price ? parseFloat(original_price) : null,
-     category_id ? parseInt(category_id) : null,
-     parseInt(quantity) || 0, defect_reason || '',
-     is_active ? 1 : 0];
+  // Build dynamic UPDATE query
+  var updates = [];
+  var params = [];
 
-  if (req.file) {
-    image_url_sql = ', image_url = ?';
-    params.push('/uploads/' + req.file.filename);
+  updates.push('name = ?'); params.push(name);
+  updates.push('description = ?'); params.push(description || '');
+  updates.push('price = ?'); params.push(parseFloat(price) || 0);
+  updates.push('original_price = ?'); params.push(original_price ? parseFloat(original_price) : null);
+  updates.push('category_id = ?'); params.push(category_id ? Number(category_id) : null);
+  updates.push('quantity = ?'); params.push(parseInt(quantity) || 0);
+  updates.push('defect_reason = ?'); params.push(defect_reason || '');
+  updates.push('is_active = ?'); params.push(is_active ? 1 : 0);
+
+  // Handle cover image
+  if (req.files && req.files.cover && req.files.cover.length > 0) {
+    updates.push('image_url = ?');
+    params.push('/uploads/' + req.files.cover[0].filename);
+  }
+  // If new gallery uploaded, clear old and replace
+  if (req.files && req.files.gallery && req.files.gallery.length > 0) {
+    db.raw.exec('DELETE FROM product_images WHERE product_id = ?', [pid]);
+    for (var i = 0; i < req.files.gallery.length; i++) {
+      var url = '/uploads/' + req.files.gallery[i].filename;
+      db.raw.exec(
+        'INSERT INTO product_images (product_id, image_url, sort_order) VALUES (?, ?, ?)',
+        [pid, url, i]
+      );
+    }
   }
 
-  params.push(parseInt(req.params.id));
-
+  params.push(pid);
   db.raw.exec(
-    'UPDATE products SET name = ?, description = ?, price = ?, original_price = ?, category_id = ?, quantity = ?, defect_reason = ?, is_active = ?' + image_url_sql + ', updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    'UPDATE products SET ' + updates.join(', ') + ', updated_at = CURRENT_TIMESTAMP WHERE id = ?',
     params
   );
 
@@ -149,6 +249,7 @@ router.post('/:id/edit', requireAuth, upload.single('image'), (req, res) => {
   res.redirect('/products/manage');
 });
 
+// POST /:id/toggle — Toggle product active status
 router.post('/:id/toggle', requireAuth, (req, res) => {
   const db = getDB();
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id));

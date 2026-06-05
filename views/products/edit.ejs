@@ -50,18 +50,32 @@
       </div>
 
       <div class="form-group">
-        <label for="image">????</label>
-        <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
-        <div class="text-muted" style="font-size:12px;margin-top:4px;">?? JPG?PNG?GIF?WebP??? 5MB</div>
+        <label for="cover">封面图片</label>
+        <input type="file" id="cover" name="cover" accept="image/jpeg,image/png,image/gif,image/webp">
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">显示在商品列表的封面照</div>
         <% if (product.image_url) { %>
-          <div style="margin-top:8px;display:flex;align-items:center;gap:12px;">
-            <img src="<%= product.image_url %>" alt="<%= product.name %>" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
-            <span class="text-muted" style="font-size:12px;">??????????????</span>
+          <div style="margin-top:8px;">
+            <img src="<%= product.image_url %>" alt="封面" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
+            <span class="text-muted" style="font-size:12px;margin-left:8px;">目前封面</span>
           </div>
         <% } %>
       </div>
 
-      <div class="form-check mb-4">
+      <div class="form-group">
+        <label for="gallery">商品照片（可多张）</label>
+        <input type="file" id="gallery" name="gallery" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">上传新照片将取代全部旧照片</div>
+        <% if (images && images.length > 0) { %>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+            <% images.forEach(function(img) { %>
+              <img src="<%= img.image_url %>" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid var(--border);">
+            <% }); %>
+          </div>
+          <div class="text-muted" style="font-size:12px;margin-top:4px;">目前 <%= images.length %> 张照片</div>
+        <% } %>
+      </div>
+
+      <div class="form-check mb-4"><div class="form-check mb-4">
         <input type="checkbox" id="is_active" name="is_active" value="1" <%= product.is_active ? 'checked' : '' %>>
         <label for="is_active" style="margin:0;">上架中（取消勾選即下架）</label>
       </div>

@@ -112,7 +112,19 @@ function getDB() {
       )
     `);
 
-    // Default admin account
+    
+    db.raw.exec(`
+      CREATE TABLE IF NOT EXISTS product_images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        image_url STRING NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        is_cover INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (product_id) REFERENCES products(id)
+      )
+    `);
+
+// Default admin account
     const row = db.prepare('SELECT id FROM employees WHERE username = ?').get('admin');
     if (!row) {
       const hashed = bcrypt.hashSync('admin123', 10);

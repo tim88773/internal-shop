@@ -58,7 +58,7 @@
           <% items.forEach(function(item) { %>
           <% var subtotal = item.unit_price * item.quantity; sum += subtotal; %>
           <tr>
-            <td><strong><%= item.name %></strong></td>
+            <td style="display:flex;align-items:center;gap:8px;"><% if (item.image_url) { %><img src="<%= item.image_url %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid var(--border);"><% } %><strong><%= item.name %></strong></td>
             <td class="text-muted"><%= item.defect_reason || '-' %></td>
             <td>$<%= Number(item.unit_price).toLocaleString() %></td>
             <td><%= item.quantity %></td>

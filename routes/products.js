@@ -30,7 +30,7 @@ function requireAuth(req, res, next) {
 function requireAdmin(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
   if (req.session.user.role !== 'admin') {
-    req.flash('error', '????????????');
+    req.flash('error', '\u6b0a\u9650\u4e0d\u8db3');
     return res.redirect('/products');
   }
   next();
@@ -88,7 +88,7 @@ router.get('/', requireAuth, (req, res) => {
   const products = params.length ? db.prepare(sql).all(...params) : db.prepare(sql).all();
   const categories = db.prepare('SELECT * FROM categories ORDER BY name').all();
 
-  res.render('products/index', { title: '商品瀏覽', products, categories, search, categoryId: categoryId || '' });
+  res.render('products/index', { title: '\u5546\u54c1\u700f\u89bd', products, categories, search, categoryId: categoryId || '' });
 });
 
 // GET /manage — Product management panel
@@ -102,14 +102,14 @@ router.get('/manage', requireAdmin, (req, res) => {
   `).all();
   const categories = db.prepare('SELECT * FROM categories ORDER BY name').all();
 
-  res.render('products/manage', { title: '商品管理', products, categories });
+  res.render('products/manage', { title: '\u5546\u54c1\u7ba1\u7406', products, categories });
 });
 
 // GET /new — New product form
 router.get('/new', requireAdmin, (req, res) => {
   const db = getDB();
   const categories = db.prepare('SELECT * FROM categories ORDER BY name').all();
-  res.render('products/new', { title: '新增商品', categories, product: {} });
+  res.render('products/new', { title: '\u65b0\u589e\u5546\u54c1', categories, product: {} });
 });
 
 // POST /new — Create product
@@ -117,7 +117,7 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
   const { name, description, price, original_price, category_id, quantity, defect_reason } = req.body;
 
   if (!name || price === undefined || price === '') {
-    req.flash('error', '商品名稱与價格为必填');
+    req.flash('error', '\u5546\u54c1\u540d\u7a31\u8207\u50f9\u683c\u70ba\u5fc5\u586b');
     return res.redirect('/products/new');
   }
 
@@ -132,17 +132,16 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
     coverUrl = '/uploads/' + req.files.gallery[0].filename;
   }
 
-  db.raw.exec(
-    'INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [name, description || '', parseFloat(price) || 0,
-     original_price ? parseFloat(original_price) : null,
-     category_id ? Number(category_id) : null,
-     parseInt(quantity) || 0,
-     defect_reason || '',
-     coverUrl || null]
+  var insertResult = db.prepare('INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+    name, description || '', parseFloat(price) || 0,
+    original_price ? parseFloat(original_price) : null,
+    category_id ? Number(category_id) : null,
+    parseInt(quantity) || 0,
+    defect_reason || '',
+    coverUrl || null
   );
 
-  var pid = db.raw.exec('SELECT MAX(id) as id FROM products')[0].id;
+  var pid = Number(insertResult.lastInsertRowid);
 
   // Save gallery images
   if (req.files && req.files.gallery) {
@@ -158,7 +157,7 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
     }
   }
 
-  req.flash('success', '商品\u300c' + name + '\u300d已上架');
+  req.flash('success', '\u5546\u54c1\u300c' + name + '\u300d\u5df2\u4e0a\u67b6');
   res.redirect('/products/manage');
 });
 
@@ -174,7 +173,7 @@ router.get('/:id', requireAuth, (req, res) => {
   `).get(pid);
 
   if (!product) {
-    req.flash('error', '找不到該商品');
+    req.flash('error', '\u627e\u4e0d\u5230\u8a72\u5546\u54c1');
     return res.redirect('/products');
   }
 
@@ -198,12 +197,12 @@ router.get('/:id/edit', requireAdmin, (req, res) => {
   const db = getDB();
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id));
   if (!product) {
-    req.flash('error', '找不到該商品');
+    req.flash('error', '\u627e\u4e0d\u5230\u8a72\u5546\u54c1');
     return res.redirect('/products/manage');
   }
   const categories = db.prepare('SELECT * FROM categories ORDER BY name').all();
   const images = getProductImages(db, Number(req.params.id));
-  res.render('products/edit', { title: '編輯商品', product, categories, images });
+  res.render('products/edit', { title: '\u7de8\u8f2f\u5546\u54c1', product, categories, images });
 });
 
 // POST /:id/edit — Update product
@@ -211,7 +210,7 @@ router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
   const { name, description, price, original_price, category_id, quantity, defect_reason, is_active } = req.body;
 
   if (!name || price === undefined || price === '') {
-    req.flash('error', '商品名稱与價格为必填');
+    req.flash('error', '\u5546\u54c1\u540d\u7a31\u8207\u50f9\u683c\u70ba\u5fc5\u586b');
     return res.redirect('/products/' + req.params.id + '/edit');
   }
 
@@ -254,7 +253,7 @@ router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
     params
   );
 
-  req.flash('success', '商品\u300c' + name + '\u300d已更新');
+  req.flash('success', '\u5546\u54c1\u300c' + name + '\u300d\u5df2\u66f4\u65b0');
   res.redirect('/products/manage');
 });
 
@@ -263,15 +262,15 @@ router.post('/:id/toggle', requireAdmin, (req, res) => {
   const db = getDB();
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id));
   if (!product) {
-    req.flash('error', '找不到該商品');
+    req.flash('error', '\u627e\u4e0d\u5230\u8a72\u5546\u54c1');
     return res.redirect('/products/manage');
   }
 
   db.raw.exec('UPDATE products SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
     [product.is_active ? 0 : 1, Number(req.params.id)]);
 
-  const action = product.is_active ? '下架' : '上架';
-  req.flash('success', '商品\u300c' + product.name + '\u300d已' + action);
+  const action = product.is_active ? '\u4e0b\u67b6' : '\u4e0a\u67b6';
+  req.flash('success', '\u5546\u54c1\u300c' + product.name + '\u300d\u5df2' + action);
   res.redirect('/products/manage');
 });
 

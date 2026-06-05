@@ -10,7 +10,7 @@ function reqAuth(req, res, next) {
 function reqAdmin(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
   if (req.session.user.role !== 'admin') {
-    req.flash('error', '????');
+    req.flash('error', '\u6b0a\u9650\u4e0d\u8db3');
     return res.redirect('/orders/my');
   }
   next();
@@ -18,11 +18,11 @@ function reqAdmin(req, res, next) {
 
 // Status labels
 const STATUS_LABELS = {
-  'pending': '待處理',
-  'accepted': '已接受',
-  'shipped': '已出貨',
-  'delivered': '已送達',
-  'cancelled': '已取消'
+  'pending': '\u5f85\u8655\u7406',
+  'accepted': '\u5df2\u63a5\u53d7',
+  'shipped': '\u5df2\u51fa\u8ca8',
+  'delivered': '\u5df2\u9001\u9054',
+  'cancelled': '\u5df2\u53d6\u6d88'
 };
 
 // Valid status transitions
@@ -86,8 +86,8 @@ router.post('/checkout', reqAuth, (req, res) => {
       if (!p) throw new Error('Not found');
       if (p.quantity < item.qty) throw new Error('Stock');
     }
-    db.raw.exec('INSERT INTO orders (employee_id, notes) VALUES (?, ?)', [req.session.user.id, req.body.notes || '']);
-    const oid = db.raw.exec('SELECT MAX(id) as id FROM orders')[0].id;
+    var insertResult = db.prepare('INSERT INTO orders (employee_id, notes) VALUES (?, ?)').run(req.session.user.id, req.body.notes || '');
+    var oid = Number(insertResult.lastInsertRowid);
     for (const item of cart) {
       const p = db.prepare('SELECT price FROM products WHERE id = ?').get(item.productId);
       db.raw.exec('INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)', [oid, item.productId, item.qty, p.price]);
@@ -134,17 +134,17 @@ router.post('/:id/cancel', reqAuth, (req, res) => {
   if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
   // Only admin or the order owner can cancel
   if (req.session.user.role !== 'admin' && o.employee_id !== req.session.user.id) {
-    req.flash('error', '無權取消此訂單');
+    req.flash('error', '\u7121\u6b0a\u53d6\u6d88\u6b64\u8a02\u55ae');
     return res.redirect('/orders/' + o.id);
   }
   // Cannot cancel if already delivered or cancelled
   if (o.status === 'delivered' || o.status === 'cancelled') {
-    req.flash('error', '該訂單已無法取消');
+    req.flash('error', '\u8a72\u8a02\u55ae\u5df2\u7121\u6cd5\u53d6\u6d88');
     return res.redirect('/orders/' + o.id);
   }
   // Consumer can only cancel pending orders
   if (req.session.user.role !== 'admin' && o.status !== 'pending') {
-    req.flash('error', '訂單已接受，無法取消');
+    req.flash('error', '\u8a02\u55ae\u5df2\u63a5\u53d7\uff0c\u7121\u6cd5\u53d6\u6d88');
     return res.redirect('/orders/' + o.id);
   }
   const cancel = db.transaction(() => {

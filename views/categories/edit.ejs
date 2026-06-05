@@ -1,0 +1,19 @@
+<div class="container" style="max-width:500px;">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x270F; 編輯分類</h1>
+    <a href="/categories" class="btn btn-outline">返回列表</a>
+  </div>
+
+  <div class="card">
+    <form action="/categories/<%= category.id %>/edit" method="POST">
+      <div class="form-group">
+        <label for="name">分類名稱 *</label>
+        <input type="text" id="name" name="name" value="<%= category.name %>" required autofocus>
+      </div>
+      <div class="form-group mt-4">
+        <button type="submit" class="btn btn-primary">儲存</button>
+        <a href="/categories" class="btn btn-outline">取消</a>
+      </div>
+    </form>
+  </div>
+</div>

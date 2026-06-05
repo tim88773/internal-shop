@@ -1,0 +1,19 @@
+<div class="container" style="max-width:500px;">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x2795; 新增分類</h1>
+    <a href="/categories" class="btn btn-outline">返回列表</a>
+  </div>
+
+  <div class="card">
+    <form action="/categories/new" method="POST">
+      <div class="form-group">
+        <label for="name">分類名稱 *</label>
+        <input type="text" id="name" name="name" placeholder="請輸入分類名稱" required autofocus>
+      </div>
+      <div class="form-group mt-4">
+        <button type="submit" class="btn btn-success">建立</button>
+        <a href="/categories" class="btn btn-outline">取消</a>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,58 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x2795; 新增商品</h1>
+    <a href="/products/manage" class="btn btn-outline">回到管理</a>
+  </div>
+
+  <div class="card">
+    <form action="/products/new" method="POST">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="name">商品名稱 *</label>
+          <input type="text" id="name" name="name" placeholder="例如：瑕疵版無線滑鼠" required>
+        </div>
+        <div class="form-group">
+          <label for="category_id">分類</label>
+          <select id="category_id" name="category_id">
+            <option value="">無分類</option>
+            <% categories.forEach(function(c) { %>
+              <option value="<%= c.id %>"><%= c.name %></option>
+            <% }); %>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">商品描述</label>
+        <textarea id="description" name="description" placeholder="描述商品規格、功能等資訊"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="price">售價 *</label>
+          <input type="number" id="price" name="price" step="1" min="0" placeholder="0" required>
+        </div>
+        <div class="form-group">
+          <label for="original_price">原價（選填）</label>
+          <input type="number" id="original_price" name="original_price" step="1" min="0" placeholder="顯示劃掉的原價">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="quantity">庫存數量</label>
+          <input type="number" id="quantity" name="quantity" min="0" value="1">
+        </div>
+        <div class="form-group">
+          <label for="defect_reason">瑕疵說明</label>
+          <input type="text" id="defect_reason" name="defect_reason" placeholder="例如：外盒輕微磨損">
+        </div>
+      </div>
+
+      <div class="form-group mt-4">
+        <button type="submit" class="btn btn-success">&#x1F4E6; 上架商品</button>
+        <a href="/products/manage" class="btn btn-outline">取消</a>
+      </div>
+    </form>
+  </div>
+</div>

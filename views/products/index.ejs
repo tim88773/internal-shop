@@ -1,0 +1,68 @@
+<% var searchVal = typeof search !== 'undefined' ? search : ''; %>
+<% var catId = typeof categoryId !== 'undefined' ? categoryId : ''; %>
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F50D; 商品瀏覽</h1>
+    <span class="text-muted">僅顯示上架中商品</span>
+  </div>
+
+  <form class="search-bar" method="GET">
+    <input type="text" name="search" placeholder="搜尋商品名稱或描述..." value="<%= searchVal %>">
+    <select name="category">
+      <option value="">所有分類</option>
+      <% categories.forEach(function(c) { %>
+        <option value="<%= c.id %>" <%= String(catId) === String(c.id) ? 'selected' : '' %>><%= c.name %></option>
+      <% }); %>
+    </select>
+    <button type="submit" class="btn btn-primary">搜尋</button>
+    <% if (searchVal || catId) { %>
+      <a href="/products" class="btn btn-outline">清除</a>
+    <% } %>
+  </form>
+
+  <% if (products.length === 0) { %>
+    <div class="empty-state">
+      <div class="icon">&#x1F50D;</div>
+      <p><%= (searchVal || catId) ? '沒有符合條件的商品' : '目前還沒有任何商品上架' %></p>
+      <% if (!(searchVal || catId)) { %>
+        <p class="text-muted">等待管理員上架商品中...</p>
+      <% } else { %>
+        <a href="/products" class="btn btn-outline mt-4">顯示全部商品</a>
+      <% } %>
+    </div>
+  <% } else { %>
+    <div class="product-grid">
+      <% products.forEach(function(p) { %>
+      <div class="product-card">
+        <div class="body">
+          <div class="name"><%= p.name %></div>
+          <% if (p.category_name) { %><span style="font-size:11px;color:var(--text-secondary);"><%= p.category_name %></span><% } %>
+          <div class="desc"><%= p.description || '無描述' %></div>
+
+          <div class="price-row">
+            <span class="price">$<%= Number(p.price).toLocaleString() %></span>
+            <% if (p.original_price) { %>
+              <span class="original-price">$<%= Number(p.original_price).toLocaleString() %></span>
+            <% } %>
+          </div>
+
+          <% if (p.defect_reason) { %>
+            <div class="defect-tag">&#x26A0; 瑕疵：<%= p.defect_reason %></div>
+          <% } %>
+
+          <div class="stock <%= p.quantity <= 3 ? 'low' : '' %>">
+            &#x1F4E6; 庫存：<%= p.quantity %> 件
+            <% if (p.quantity === 0) { %><span style="color:var(--danger);font-weight:600;">（已售罄）</span><% } %>
+          </div>
+
+          <form action="/orders/cart/add" method="POST" style="margin-top:10px;display:flex;gap:8px;">
+            <input type="hidden" name="product_id" value="<%= p.id %>">
+            <input type="number" name="quantity" value="1" min="1" max="<%= p.quantity %>" style="width:60px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:14px;">
+            <button type="submit" class="btn btn-primary btn-sm" <%= p.quantity === 0 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '' %>><%= p.quantity === 0 ? '已售罄' : '加入購物車' %></button>
+          </form>
+        </div>
+      </div>
+      <% }); %>
+    </div>
+  <% } %>
+</div>

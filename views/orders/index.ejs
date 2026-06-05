@@ -1,0 +1,49 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F4CB; <%= typeof myOrders !== 'undefined' && myOrders ? '我的訂單' : '所有訂單' %></h1>
+    <% if (typeof myOrders !== 'undefined' && myOrders) { %>
+      <a href="/orders" class="btn btn-outline">查看所有訂單</a>
+    <% } else { %>
+      <a href="/orders/my" class="btn btn-outline">我的訂單</a>
+    <% } %>
+  </div>
+
+  <% if (orders.length === 0) { %>
+    <div class="empty-state">
+      <div class="icon">&#x1F4CB;</div>
+      <p>目前還沒有訂單記錄</p>
+      <a href="/products" class="btn btn-primary mt-4">去購物</a>
+    </div>
+  <% } else { %>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>訂單編號</th>
+              <th>下單員工</th>
+              <th>品項</th>
+              <th>總金額</th>
+              <th>狀態</th>
+              <th>下單時間</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% orders.forEach(function(o) { %>
+            <tr>
+              <td><strong>#<%= o.id %></strong></td>
+              <td><%= o.display_name %></td>
+              <td><%= o.items_count %> 件</td>
+              <td style="font-weight:600;">$<%= Number(o.total_amount || 0).toLocaleString() %></td>
+              <td><span class="status status-<%= o.status %>"><%= o.status === 'pending' ? '待處理' : o.status === 'completed' ? '已完成' : '已取消' %></span></td>
+              <td class="text-muted"><%= new Date(o.created_at).toLocaleString('zh-TW') %></td>
+              <td><a href="/orders/<%= o.id %>" class="btn btn-outline btn-sm">詳細</a></td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+</div>

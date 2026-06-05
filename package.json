@@ -1,0 +1,20 @@
+{
+  "name": "internal-shop",
+  "version": "1.0.0",
+  "description": "Employee internal defective product purchase system",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js"
+  },
+  "dependencies": {
+    "alasql": "^4.8.0",
+    "bcryptjs": "^2.4.3",
+    "connect-flash": "^0.1.1",
+    "ejs": "^3.1.10",
+    "express": "^4.21.0",
+    "express-ejs-layouts": "^2.5.1",
+    "express-session": "^1.18.1",
+    "session-file-store": "^1.5.0"
+  }
+}

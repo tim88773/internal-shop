@@ -1,0 +1,68 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F6D2; 購物車</h1>
+    <a href="/products" class="btn btn-outline">繼續購物</a>
+  </div>
+
+  <% if (items.length === 0) { %>
+    <div class="empty-state">
+      <div class="icon">&#x1F6D2;</div>
+      <p>購物車是空的</p>
+      <a href="/products" class="btn btn-primary mt-4">去看看商品</a>
+    </div>
+  <% } else { %>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>商品</th>
+              <th>瑕疵說明</th>
+              <th>單價</th>
+              <th>數量</th>
+              <th>小計</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% items.forEach(function(item) { %>
+            <tr>
+              <td><strong><%= item.name %></strong></td>
+              <td class="text-muted" style="max-width:180px;white-space:normal;"><%= item.defect_reason || '-' %></td>
+              <td>$<%= Number(item.price).toLocaleString() %></td>
+              <td>
+                <form action="/orders/cart/update" method="POST" style="display:flex;gap:4px;align-items:center;">
+                  <input type="hidden" name="product_id" value="<%= item.id %>">
+                  <input type="number" name="quantity" value="<%= item.cartQty %>" min="0" max="<%= item.quantity %>" style="width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:14px;">
+                  <button type="submit" class="btn btn-outline btn-sm">更新</button>
+                </form>
+              </td>
+              <td style="font-weight:600;">$<%= Number(item.price * item.cartQty).toLocaleString() %></td>
+              <td>
+                <form action="/orders/cart/remove" method="POST">
+                  <input type="hidden" name="product_id" value="<%= item.id %>">
+                  <button type="submit" class="btn btn-danger btn-sm">移除</button>
+                </form>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:16px;padding-top:16px;border-top:2px solid var(--border);">
+        <div class="flex-between">
+          <span style="font-size:16px;font-weight:600;">總計</span>
+          <span style="font-size:24px;font-weight:700;color:var(--danger);">$<%= Number(total).toLocaleString() %></span>
+        </div>
+        <form action="/orders/checkout" method="POST" style="margin-top:12px;">
+          <div class="form-group">
+            <label for="notes">備註（選填）</label>
+            <textarea id="notes" name="notes" placeholder="例如：放置位置、注意事項等" style="min-height:50px;"></textarea>
+          </div>
+          <button type="submit" class="btn btn-success btn-block" style="font-size:16px;padding:12px;">&#x1F4E6; 確認下單</button>
+        </form>
+      </div>
+    </div>
+  <% } %>
+</div>

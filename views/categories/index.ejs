@@ -1,0 +1,50 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F4C1; 分類管理</h1>
+    <a href="/categories/new" class="btn btn-success">+ 新增分類</a>
+  </div>
+
+  <div class="card">
+    <% if (categories.length === 0) { %>
+      <div class="empty-state">
+        <div class="icon">&#x1F4C1;</div>
+        <p>目前還沒有任何分類</p>
+        <a href="/categories/new" class="btn btn-primary mt-4">建立第一個分類</a>
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>分類名稱</th>
+              <th>商品數量</th>
+              <th>建立時間</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% categories.forEach(function(c) { %>
+            <tr>
+              <td>#<%= c.id %></td>
+              <td><strong><%= c.name %></strong></td>
+              <td><%= c.product_count %></td>
+              <td class="text-muted"><%= new Date(c.created_at).toLocaleString('zh-TW') %></td>
+              <td>
+                <div class="actions">
+                  <a href="/categories/<%= c.id %>/edit" class="btn btn-outline btn-sm">編輯</a>
+                  <% if (c.product_count === 0) { %>
+                  <form action="/categories/<%= c.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('確定要刪除分類「<%= c.name %>」嗎？')">
+                    <button type="submit" class="btn btn-danger btn-sm">刪除</button>
+                  </form>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>

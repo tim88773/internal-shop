@@ -1,0 +1,5 @@
+node_modules/
+data/sessions/
+data/*.db
+*.log
+.env

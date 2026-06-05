@@ -1,4 +1,4 @@
-const Database = require('better-sqlite3');
+﻿const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
@@ -105,6 +105,14 @@ function getDB() {
     )
   `);
 
+
+  // Add sizes and colors columns if not present (migration)
+  var productCols = db.prepare("PRAGMA table_info(products)").all().map(function(c) { return c.name; });
+  if (productCols.indexOf('sizes') === -1) db.exec("ALTER TABLE products ADD COLUMN sizes TEXT DEFAULT ''");
+  if (productCols.indexOf('colors') === -1) db.exec("ALTER TABLE products ADD COLUMN colors TEXT DEFAULT ''");
+  var oiCols = db.prepare("PRAGMA table_info(order_items)").all().map(function(c) { return c.name; });
+  if (oiCols.indexOf('product_size') === -1) db.exec("ALTER TABLE order_items ADD COLUMN product_size TEXT DEFAULT ''");
+  if (oiCols.indexOf('product_color') === -1) db.exec("ALTER TABLE order_items ADD COLUMN product_color TEXT DEFAULT ''");
   // Default admin account
   var row = db.prepare("SELECT id FROM employees WHERE username = ?").get('admin');
   if (!row) {

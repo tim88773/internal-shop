@@ -40,6 +40,17 @@
 
       <div class="form-row">
         <div class="form-group">
+          <label for="sizes">尺寸（可複選，逗號分隔）</label>
+          <input type="text" id="sizes" name="sizes" placeholder="例如：S, M, L, XL">
+        </div>
+        <div class="form-group">
+          <label for="colors">顏色（可複選，逗號分隔）</label>
+          <input type="text" id="colors" name="colors" placeholder="例如：黑色, 白色, 藍色">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
           <label for="quantity">庫存數量</label>
           <input type="number" id="quantity" name="quantity" min="0" value="1">
         </div>
@@ -50,15 +61,15 @@
       </div>
 
       <div class="form-group">
-        <label for="cover">????</label>
+        <label for="cover">封面圖片</label>
         <input type="file" id="cover" name="cover" accept="image/jpeg,image/png,image/gif,image/webp">
-        <div class="text-muted" style="font-size:12px;margin-top:4px;">?????????????? JPG?PNG?GIF?WebP??? 5MB</div>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">建議尺寸 800x800，支援 JPG/PNG/GIF/WebP，最大 5MB</div>
       </div>
 
       <div class="form-group">
-        <label for="gallery">?????????</label>
+        <label for="gallery">商品照片（可多張）</label>
         <input type="file" id="gallery" name="gallery" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
-        <div class="text-muted" style="font-size:12px;margin-top:4px;">???????????????? Ctrl ? Cmd ???</div>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">按住 Ctrl 或 Cmd 可選擇多張</div>
       </div>
 
       <div class="form-group mt-4">

@@ -40,6 +40,17 @@
 
       <div class="form-row">
         <div class="form-group">
+          <label for="sizes">尺寸（可複選，逗號分隔）</label>
+          <input type="text" id="sizes" name="sizes" value="<%= editSizes %>" placeholder="例如：S, M, L, XL">
+        </div>
+        <div class="form-group">
+          <label for="colors">顏色（可複選，逗號分隔）</label>
+          <input type="text" id="colors" name="colors" value="<%= editColors %>" placeholder="例如：黑色, 白色, 藍色">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
           <label for="quantity">庫存數量</label>
           <input type="number" id="quantity" name="quantity" min="0" value="<%= product.quantity %>">
         </div>
@@ -75,7 +86,7 @@
         <% } %>
       </div>
 
-      <div class="form-check mb-4"><div class="form-check mb-4">
+      <div class="form-check mb-4">
         <input type="checkbox" id="is_active" name="is_active" value="1" <%= product.is_active ? 'checked' : '' %>>
         <label for="is_active" style="margin:0;">上架中（取消勾選即下架）</label>
       </div>

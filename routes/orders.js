@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const { getDB } = require('../db');
 
@@ -39,7 +39,7 @@ router.get('/cart', reqAuth, (req, res) => {
   const db = getDB();
   const items = req.session._cart.map(item => {
     const p = db.prepare('SELECT * FROM products WHERE id = ? AND is_active = 1').get(item.productId);
-    return p ? { id: p.id, name: p.name, price: p.price, quantity: p.quantity, defect_reason: p.defect_reason, cartQty: item.qty } : null;
+    return p ? { id: p.id, name: p.name, price: p.price, quantity: p.quantity, defect_reason: p.defect_reason, cartQty: item.qty, selectedSize: item.selectedSize || '', selectedColor: item.selectedColor || '' } : null;
   }).filter(Boolean);
   const total = items.reduce((s, i) => s + i.price * i.cartQty, 0);
   res.render('orders/cart', { title: 'Cart', items, total });
@@ -56,7 +56,9 @@ router.post('/cart/add', reqAuth, (req, res) => {
   const ex = req.session._cart.find(c => c.productId === pid);
   const need = (ex ? ex.qty : 0) + qty;
   if (p.quantity < need) { req.flash('error', 'Stock'); return res.redirect('/products'); }
-  if (ex) { ex.qty += qty; } else { req.session._cart.push({ productId: pid, qty }); }
+  var selSize = req.body.size || '';
+  var selColor = req.body.color || '';
+  if (ex) { ex.qty += qty; } else { req.session._cart.push({ productId: pid, qty: qty, selectedSize: selSize, selectedColor: selColor }); }
   req.flash('success', 'Added!');
   res.redirect('/products');
 });
@@ -90,7 +92,7 @@ router.post('/checkout', reqAuth, (req, res) => {
     var oid = Number(insertResult.lastInsertRowid);
     for (const item of cart) {
       const p = db.prepare('SELECT price FROM products WHERE id = ?').get(item.productId);
-      db.raw.exec('INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)', [oid, item.productId, item.qty, p.price]);
+      db.raw.exec('INSERT INTO order_items (order_id, product_id, quantity, unit_price, product_size, product_color) VALUES (?, ?, ?, ?, ?, ?)', [oid, item.productId, item.qty, p.price, item.selectedSize || '', item.selectedColor || '']);
       db.raw.exec('UPDATE products SET quantity = quantity - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [item.qty, item.productId]);
     }
     return oid;

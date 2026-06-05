@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const path = require('path');
 const multer = require('multer');
@@ -189,7 +189,11 @@ router.get('/:id', requireAuth, (req, res) => {
     if (found) inCart = found.qty;
   }
 
-  res.render('products/detail', { title: product.name, product, images, related, inCart });
+  // Parse sizes and colors for the detail view
+  var productSizes = []; var productColors = [];
+  try { productSizes = JSON.parse(product.sizes || '[]'); } catch(e) {}
+  try { productColors = JSON.parse(product.colors || '[]'); } catch(e) {}
+  res.render('products/detail', { title: product.name, product, images, related, inCart, productSizes: productSizes, productColors: productColors });
 });
 
 // GET /:id/edit — Edit product form
@@ -229,6 +233,10 @@ router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
   updates.push('quantity = ?'); params.push(parseInt(quantity) || 0);
   updates.push('defect_reason = ?'); params.push(defect_reason || '');
   updates.push('is_active = ?'); params.push(is_active ? 1 : 0);
+  var sizesArr2 = (req.body.sizes || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
+  var colorsArr2 = (req.body.colors || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
+  updates.push('sizes = ?'); params.push(JSON.stringify(sizesArr2));
+  updates.push('colors = ?'); params.push(JSON.stringify(colorsArr2));
 
   // Handle cover image
   if (req.files && req.files.cover && req.files.cover.length > 0) {

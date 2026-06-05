@@ -3,15 +3,23 @@
     <h1 style="font-size:22px;font-weight:700;">&#x1F4C4; 订单 #<%= order.id %></h1>
     <div class="btn-group">
       <a href="/orders" class="btn btn-outline">回订单列表</a>
-      <% if (order.status === 'pending') { %>
-        <form action="/orders/<%= order.id %>/cancel" method="POST" onsubmit="return confirm('确定要取消此订单？库存将自动恢复。')">
-          <button type="submit" class="btn btn-danger">取消订单</button>
-        </form>
-      <% } %>
-      <% if (nextStatus) { %>
-        <form action="/orders/<%= order.id %>/advance" method="POST" style="display:inline;">
-          <button type="submit" class="btn btn-success">设为「<%= statusLabel(nextStatus) %>」</button>
-        </form>
+      <% if (currentUser && currentUser.role === 'admin') { %>
+        <% if (nextStatus) { %>
+          <form action="/orders/<%= order.id %>/advance" method="POST" style="display:inline;">
+            <button type="submit" class="btn btn-success">设为「<%= statusLabel(nextStatus) %>」</button>
+          </form>
+        <% } %>
+        <% if (order.status !== 'delivered' && order.status !== 'cancelled') { %>
+          <form action="/orders/<%= order.id %>/cancel" method="POST" onsubmit="return confirm('确定要取消此订单？库存将自动恢复。')">
+            <button type="submit" class="btn btn-danger">取消订单</button>
+          </form>
+        <% } %>
+      <% } else { %>
+        <% if (order.status === 'pending') { %>
+          <form action="/orders/<%= order.id %>/cancel" method="POST" onsubmit="return confirm('确定要取消此订单？')">
+            <button type="submit" class="btn btn-danger">取消订单</button>
+          </form>
+        <% } %>
       <% } %>
     </div>
   </div>

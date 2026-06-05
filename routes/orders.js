@@ -86,7 +86,7 @@ router.post('/checkout', reqAuth, (req, res) => {
       if (!p) throw new Error('Not found');
       if (p.quantity < item.qty) throw new Error('Stock');
     }
-    db.raw.exec('INSERT INTO orders (employee_id, notes) VALUES (?, ?)', [req.session.user.id, req.body.notes || '']);
+    db.raw.exec("INSERT INTO orders (employee_id, notes, status) VALUES (?, ?, 'accepted')", [req.session.user.id, req.body.notes || '']);
     const oid = db.raw.exec('SELECT MAX(id) as id FROM orders')[0].id;
     for (const item of cart) {
       const p = db.prepare('SELECT price FROM products WHERE id = ?').get(item.productId);
@@ -127,12 +127,25 @@ router.get('/:id', reqAuth, (req, res) => {
   res.render('orders/detail', { title: 'Order #' + o.id, order: o, items, statusLabel, nextStatus: NEXT_STATUS[o.status] || null });
 });
 
-// Cancel order (only pending)
-router.post('/:id/cancel', reqAdmin, (req, res) => {
+// Cancel order
+router.post('/:id/cancel', reqAuth, (req, res) => {
   const db = getDB();
   const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
   if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
-  if (o.status !== 'pending') { req.flash('error', 'Only pending'); return res.redirect('/orders/' + o.id); }
+  // Only admin or the order owner can cancel
+  if (req.session.user.role !== 'admin' && o.employee_id !== req.session.user.id) {
+    req.flash('error', '无权取消此订单');
+    return res.redirect('/orders/' + o.id);
+  }
+  // Admin can cancel any non-delivered order; regular users only pending
+  if (o.status === 'delivered' || o.status === 'cancelled') {
+    req.flash('error', '该订单已无法取消');
+    return res.redirect('/orders/' + o.id);
+  }
+  if (req.session.user.role !== 'admin' && o.status !== 'pending') {
+    req.flash('error', '订单已接受，无法取消');
+    return res.redirect('/orders/' + o.id);
+  }
   const cancel = db.transaction(() => {
     const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(o.id);
     for (const item of items) { db.raw.exec('UPDATE products SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [item.quantity, item.product_id]); }

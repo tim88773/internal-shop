@@ -40,10 +40,10 @@ function wrapDB(rawDb) {
         rawDb.exec('BEGIN TRANSACTION');
         try {
           const result = fn(...args);
-          rawDb.exec('COMMIT');
+          rawDb.exec('COMMIT TRANSACTION');
           return result;
         } catch (e) {
-          rawDb.exec('ROLLBACK');
+          rawDb.exec('ROLLBACK TRANSACTION');
           throw e;
         }
       };

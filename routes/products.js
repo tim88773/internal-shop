@@ -1,6 +1,26 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const multer = require('multer');
 const { getDB } = require('../db');
+
+// Multer config for image uploads
+const storage = multer.diskStorage({
+  destination: path.join(__dirname, '..', 'public', 'uploads'),
+  filename: function(req, file, cb) {
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, Date.now() + '-' + require('crypto').randomBytes(6).toString('hex') + ext);
+  }
+});
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: function(req, file, cb) {
+    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, allowed.includes(ext));
+  }
+});
 
 function requireAuth(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
@@ -55,7 +75,7 @@ router.get('/new', requireAuth, (req, res) => {
   res.render('products/new', { title: '新增商品', categories, product: {} });
 });
 
-router.post('/new', requireAuth, (req, res) => {
+router.post('/new', requireAuth, upload.single('image'), (req, res) => {
   const { name, description, price, original_price, category_id, quantity, defect_reason } = req.body;
 
   if (!name || price === undefined || price === '') {
@@ -63,14 +83,21 @@ router.post('/new', requireAuth, (req, res) => {
     return res.redirect('/products/new');
   }
 
+  // Handle uploaded image
+  let image_url = '';
+  if (req.file) {
+    image_url = '/uploads/' + req.file.filename;
+  }
+
   const db = getDB();
   db.raw.exec(
-    'INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [name, description || '', parseFloat(price) || 0,
      original_price ? parseFloat(original_price) : null,
      category_id ? parseInt(category_id) : null,
      parseInt(quantity) || 0,
-     defect_reason || '']
+     defect_reason || '',
+     image_url || null]
   );
 
   req.flash('success', '商品\u300c' + name + '\u300d已上架');
@@ -88,7 +115,7 @@ router.get('/:id/edit', requireAuth, (req, res) => {
   res.render('products/edit', { title: '编辑商品', product, categories });
 });
 
-router.post('/:id/edit', requireAuth, (req, res) => {
+router.post('/:id/edit', requireAuth, upload.single('image'), (req, res) => {
   const { name, description, price, original_price, category_id, quantity, defect_reason, is_active } = req.body;
 
   if (!name || price === undefined || price === '') {
@@ -97,13 +124,25 @@ router.post('/:id/edit', requireAuth, (req, res) => {
   }
 
   const db = getDB();
-  db.raw.exec(
-    'UPDATE products SET name = ?, description = ?, price = ?, original_price = ?, category_id = ?, quantity = ?, defect_reason = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [name, description || '', parseFloat(price) || 0,
+
+  // Handle uploaded image
+  let image_url_sql = '';
+  const params = [name, description || '', parseFloat(price) || 0,
      original_price ? parseFloat(original_price) : null,
      category_id ? parseInt(category_id) : null,
      parseInt(quantity) || 0, defect_reason || '',
-     is_active ? 1 : 0, parseInt(req.params.id)]
+     is_active ? 1 : 0];
+
+  if (req.file) {
+    image_url_sql = ', image_url = ?';
+    params.push('/uploads/' + req.file.filename);
+  }
+
+  params.push(parseInt(req.params.id));
+
+  db.raw.exec(
+    'UPDATE products SET name = ?, description = ?, price = ?, original_price = ?, category_id = ?, quantity = ?, defect_reason = ?, is_active = ?' + image_url_sql + ', updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    params
   );
 
   req.flash('success', '商品\u300c' + name + '\u300d已更新');

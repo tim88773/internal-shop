@@ -119,6 +119,14 @@ function getDB() {
       db.raw.exec('INSERT INTO employees (username, password, display_name) VALUES (?, ?, ?)',
         ['admin', hashed, '管理员']);
     }
+
+    // Test consumer account
+    const test = db.prepare('SELECT id FROM employees WHERE username = ?').get('test');
+    if (!test) {
+      const hashed = bcrypt.hashSync('test123', 10);
+      db.raw.exec('INSERT INTO employees (username, password, display_name, email) VALUES (?, ?, ?, ?)',
+        ['test', hashed, '测试消费者', 'test@shop.local']);
+    }
   }
   return db;
 }

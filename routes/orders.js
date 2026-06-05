@@ -7,6 +7,24 @@ function reqAuth(req, res, next) {
   next();
 }
 
+// Status labels
+const STATUS_LABELS = {
+  'pending': '待处理',
+  'accepted': '已接受',
+  'shipped': '已出货',
+  'delivered': '已送达',
+  'cancelled': '已取消'
+};
+
+// Valid status transitions
+const NEXT_STATUS = {
+  'pending': 'accepted',
+  'accepted': 'shipped',
+  'shipped': 'delivered'
+};
+
+function statusLabel(s) { return STATUS_LABELS[s] || s; }
+
 router.get('/cart', reqAuth, (req, res) => {
   if (!req.session._cart) req.session._cart = [];
   const db = getDB();
@@ -83,13 +101,13 @@ router.post('/checkout', reqAuth, (req, res) => {
 router.get('/', reqAuth, (req, res) => {
   const db = getDB();
   const orders = db.prepare("SELECT o.*, e.display_name, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id ORDER BY o.created_at DESC").all();
-  res.render('orders/index', { title: 'All Orders', orders, myOrders: false });
+  res.render('orders/index', { title: 'All Orders', orders, myOrders: false, statusLabel });
 });
 
 router.get('/my', reqAuth, (req, res) => {
   const db = getDB();
   const orders = db.prepare("SELECT o.*, e.display_name, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.employee_id = ? ORDER BY o.created_at DESC").all(req.session.user.id);
-  res.render('orders/index', { title: 'My Orders', orders, myOrders: true });
+  res.render('orders/index', { title: 'My Orders', orders, myOrders: true, statusLabel });
 });
 
 router.get('/:id', reqAuth, (req, res) => {
@@ -97,9 +115,10 @@ router.get('/:id', reqAuth, (req, res) => {
   const o = db.prepare("SELECT o.*, e.display_name, e.email FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.id = ?").get(req.params.id);
   if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
   const items = db.prepare("SELECT oi.*, p.name, p.defect_reason, p.image_url FROM order_items oi JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?").all(req.params.id);
-  res.render('orders/detail', { title: 'Order #' + o.id, order: o, items });
+  res.render('orders/detail', { title: 'Order #' + o.id, order: o, items, statusLabel, nextStatus: NEXT_STATUS[o.status] || null });
 });
 
+// Cancel order (only pending)
 router.post('/:id/cancel', reqAuth, (req, res) => {
   const db = getDB();
   const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
@@ -115,16 +134,16 @@ router.post('/:id/cancel', reqAuth, (req, res) => {
   res.redirect('/orders/' + o.id);
 });
 
-// Mark order as completed
-router.post('/:id/complete', reqAuth, (req, res) => {
+// Advance order to next status
+router.post('/:id/advance', reqAuth, (req, res) => {
   const db = getDB();
   const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
-  if (o.status !== 'pending') { req.flash('error', 'Can only complete pending orders'); return res.redirect('/orders/' + o.id); }
-  db.raw.exec("UPDATE orders SET status = 'completed' WHERE id = ?", [o.id]);
-  req.flash('success', 'Order #' + o.id + ' completed');
+  const next = NEXT_STATUS[o.status];
+  if (!next) { req.flash('error', 'Cannot advance'); return res.redirect('/orders/' + o.id); }
+  db.raw.exec('UPDATE orders SET status = ? WHERE id = ?', [next, o.id]);
+  req.flash('success', 'Order #' + o.id + ' ' + statusLabel(next));
   res.redirect('/orders/' + o.id);
 });
-
 
 module.exports = router;

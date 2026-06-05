@@ -5,7 +5,7 @@
   </div>
 
   <div class="card">
-    <form action="/products/<%= product.id %>/edit" method="POST">
+    <form action="/products/<%= product.id %>/edit" method="POST" enctype="multipart/form-data">
       <div class="form-row">
         <div class="form-group">
           <label for="name">商品名稱 *</label>
@@ -47,6 +47,18 @@
           <label for="defect_reason">瑕疵說明</label>
           <input type="text" id="defect_reason" name="defect_reason" value="<%= product.defect_reason || '' %>">
         </div>
+      </div>
+
+      <div class="form-group">
+        <label for="image">????</label>
+        <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">?? JPG?PNG?GIF?WebP??? 5MB</div>
+        <% if (product.image_url) { %>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:12px;">
+            <img src="<%= product.image_url %>" alt="<%= product.name %>" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
+            <span class="text-muted" style="font-size:12px;">??????????????</span>
+          </div>
+        <% } %>
       </div>
 
       <div class="form-check mb-4">

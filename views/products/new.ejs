@@ -5,7 +5,7 @@
   </div>
 
   <div class="card">
-    <form action="/products/new" method="POST">
+    <form action="/products/new" method="POST" enctype="multipart/form-data">
       <div class="form-row">
         <div class="form-group">
           <label for="name">商品名稱 *</label>
@@ -47,6 +47,12 @@
           <label for="defect_reason">瑕疵說明</label>
           <input type="text" id="defect_reason" name="defect_reason" placeholder="例如：外盒輕微磨損">
         </div>
+      </div>
+
+      <div class="form-group">
+        <label for="image">????</label>
+        <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">?? JPG?PNG?GIF?WebP??? 5MB</div>
       </div>
 
       <div class="form-group mt-4">

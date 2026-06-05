@@ -36,7 +36,7 @@
               <td><%= o.display_name %></td>
               <td><%= o.items_count %> 件</td>
               <td style="font-weight:600;">$<%= Number(o.total_amount || 0).toLocaleString() %></td>
-              <td><span class="status status-<%= o.status %>"><%= o.status === 'pending' ? '待處理' : o.status === 'completed' ? '已完成' : '已取消' %></span></td>
+              <td><span class="status status-<%= o.status %>"><%= statusLabel(o.status) %></span></td>
               <td class="text-muted"><%= new Date(o.created_at).toLocaleString('zh-TW') %></td>
               <td><a href="/orders/<%= o.id %>" class="btn btn-outline btn-sm">詳細</a></td>
             </tr>

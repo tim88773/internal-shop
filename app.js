@@ -18,6 +18,7 @@ app.set('layout', 'layout');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+
 // Simple session middleware (no express-session, no async issues)
 app.use((req, res, next) => {
   var raw = req.headers.cookie || '';
@@ -109,4 +110,5 @@ try { getDB(); console.log('[Shop] DB ready'); } catch (e) { console.error('[Sho
 app.listen(PORT, () => {
   console.log('[Internal Shop] Running at http://localhost:' + PORT);
   console.log('[Internal Shop] Admin: admin / admin123');
+  console.log('[Internal Shop] Test: test / test123');
 });

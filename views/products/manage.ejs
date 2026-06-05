@@ -24,6 +24,13 @@
           <% products.forEach(function(p) { %>
           <tr>
             <td>#<%= p.id %></td>
+            <td>
+              <% if (p.image_url) { %>
+                <img src="<%= p.image_url %>" alt="<%= p.name %>" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--border);">
+              <% } else { %>
+                <span class="text-muted">-</span>
+              <% } %>
+            </td>
             <td><strong><%= p.name %></strong></td>
             <td><%= p.category_name || '-' %></td>
             <td style="color:var(--danger);font-weight:600;">$<%= Number(p.price).toLocaleString() %></td>

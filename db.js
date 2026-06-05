@@ -63,6 +63,7 @@ function getDB() {
         password STRING NOT NULL,
         display_name STRING NOT NULL,
         email STRING,
+        role STRING NOT NULL DEFAULT 'user',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -128,16 +129,16 @@ function getDB() {
     const row = db.prepare('SELECT id FROM employees WHERE username = ?').get('admin');
     if (!row) {
       const hashed = bcrypt.hashSync('admin123', 10);
-      db.raw.exec('INSERT INTO employees (username, password, display_name) VALUES (?, ?, ?)',
-        ['admin', hashed, '管理员']);
+      db.raw.exec('INSERT INTO employees (username, password, display_name, role) VALUES (?, ?, ?, ?)',
+        ['admin', hashed, '管理员', 'admin']);
     }
 
     // Test consumer account
     const test = db.prepare('SELECT id FROM employees WHERE username = ?').get('test');
     if (!test) {
       const hashed = bcrypt.hashSync('test123', 10);
-      db.raw.exec('INSERT INTO employees (username, password, display_name, email) VALUES (?, ?, ?, ?)',
-        ['test', hashed, '测试消费者', 'test@shop.local']);
+      db.raw.exec('INSERT INTO employees (username, password, display_name, email, role) VALUES (?, ?, ?, ?, ?)',
+        ['test', hashed, '测试消费者', 'test@shop.local', 'user']);
     }
   }
   return db;

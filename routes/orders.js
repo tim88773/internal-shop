@@ -7,6 +7,15 @@ function reqAuth(req, res, next) {
   next();
 }
 
+function reqAdmin(req, res, next) {
+  if (!req.session.user) return res.redirect('/login');
+  if (req.session.user.role !== 'admin') {
+    req.flash('error', '????');
+    return res.redirect('/orders/my');
+  }
+  next();
+}
+
 // Status labels
 const STATUS_LABELS = {
   'pending': '待处理',
@@ -98,7 +107,7 @@ router.post('/checkout', reqAuth, (req, res) => {
   }
 });
 
-router.get('/', reqAuth, (req, res) => {
+router.get('/', reqAdmin, (req, res) => {
   const db = getDB();
   const orders = db.prepare("SELECT o.*, e.display_name, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id ORDER BY o.created_at DESC").all();
   res.render('orders/index', { title: 'All Orders', orders, myOrders: false, statusLabel });
@@ -119,7 +128,7 @@ router.get('/:id', reqAuth, (req, res) => {
 });
 
 // Cancel order (only pending)
-router.post('/:id/cancel', reqAuth, (req, res) => {
+router.post('/:id/cancel', reqAdmin, (req, res) => {
   const db = getDB();
   const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
   if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
@@ -135,7 +144,7 @@ router.post('/:id/cancel', reqAuth, (req, res) => {
 });
 
 // Advance order to next status
-router.post('/:id/advance', reqAuth, (req, res) => {
+router.post('/:id/advance', reqAdmin, (req, res) => {
   const db = getDB();
   const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
   if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }

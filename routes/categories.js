@@ -2,13 +2,22 @@ const express = require('express');
 const router = express.Router();
 const { getDB } = require('../db');
 
-function requireAuth(req, res, next) {
+function requireAdmin(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
   next();
 }
 
+function requireAdmin(req, res, next) {
+  if (!req.session.user) return res.redirect('/login');
+  if (req.session.user.role !== 'admin') {
+    req.flash('error', '????');
+    return res.redirect('/products');
+  }
+  next();
+}
+
 // List all categories
-router.get('/', requireAuth, (req, res) => {
+router.get('/', requireAdmin, (req, res) => {
   const db = getDB();
   const categories = db.prepare(`
     SELECT c.*, (SELECT COUNT(1) FROM products WHERE category_id = c.id) as product_count
@@ -19,12 +28,12 @@ router.get('/', requireAuth, (req, res) => {
 });
 
 // New category form
-router.get('/new', requireAuth, (req, res) => {
+router.get('/new', requireAdmin, (req, res) => {
   res.render('categories/new', { title: '新增分類' });
 });
 
 // Create category
-router.post('/new', requireAuth, (req, res) => {
+router.post('/new', requireAdmin, (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) {
     req.flash('error', '請輸入分類名稱');
@@ -43,7 +52,7 @@ router.post('/new', requireAuth, (req, res) => {
 });
 
 // Edit category form
-router.get('/:id/edit', requireAuth, (req, res) => {
+router.get('/:id/edit', requireAdmin, (req, res) => {
   const db = getDB();
   const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(req.params.id);
   if (!category) {
@@ -54,7 +63,7 @@ router.get('/:id/edit', requireAuth, (req, res) => {
 });
 
 // Update category
-router.post('/:id/edit', requireAuth, (req, res) => {
+router.post('/:id/edit', requireAdmin, (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) {
     req.flash('error', '請輸入分類名稱');
@@ -73,7 +82,7 @@ router.post('/:id/edit', requireAuth, (req, res) => {
 });
 
 // Delete category
-router.post('/:id/delete', requireAuth, (req, res) => {
+router.post('/:id/delete', requireAdmin, (req, res) => {
   const db = getDB();
   const cat = db.prepare('SELECT * FROM categories WHERE id = ?').get(req.params.id);
   if (!cat) {

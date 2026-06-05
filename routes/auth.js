@@ -22,7 +22,7 @@ router.post('/login', (req, res) => {
     return res.redirect('/login');
   }
 
-  req.session.user = { id: user.id, username: user.username, display_name: user.display_name };
+  req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role };
   req.flash('success', 'Welcome back, ' + user.display_name + '!');
   res.redirect('/dashboard');
 });
@@ -56,8 +56,8 @@ router.post('/register', (req, res) => {
   }
 
   const hashed = bcrypt.hashSync(password, 10);
-  db.raw.exec('INSERT INTO employees (username, password, display_name, email) VALUES (?, ?, ?, ?)',
-    [username, hashed, display_name, email || null]);
+  db.raw.exec('INSERT INTO employees (username, password, display_name, email, role) VALUES (?, ?, ?, ?, ?)',
+    [username, hashed, display_name, email || null, 'user']);
 
   req.flash('success', 'Registration successful, please login');
   res.redirect('/login');

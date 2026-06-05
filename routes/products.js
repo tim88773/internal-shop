@@ -27,6 +27,15 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function requireAdmin(req, res, next) {
+  if (!req.session.user) return res.redirect('/login');
+  if (req.session.user.role !== 'admin') {
+    req.flash('error', '????????????');
+    return res.redirect('/products');
+  }
+  next();
+}
+
 // Image upload middleware: cover (single) + gallery (multiple)
 const uploadFields = upload.fields([
   { name: 'cover', maxCount: 1 },
@@ -83,7 +92,7 @@ router.get('/', requireAuth, (req, res) => {
 });
 
 // GET /manage — Product management panel
-router.get('/manage', requireAuth, (req, res) => {
+router.get('/manage', requireAdmin, (req, res) => {
   const db = getDB();
   const products = db.prepare(`
     SELECT p.*, c.name as category_name
@@ -97,14 +106,14 @@ router.get('/manage', requireAuth, (req, res) => {
 });
 
 // GET /new — New product form
-router.get('/new', requireAuth, (req, res) => {
+router.get('/new', requireAdmin, (req, res) => {
   const db = getDB();
   const categories = db.prepare('SELECT * FROM categories ORDER BY name').all();
   res.render('products/new', { title: '新增商品', categories, product: {} });
 });
 
 // POST /new — Create product
-router.post('/new', requireAuth, uploadFields, (req, res) => {
+router.post('/new', requireAdmin, uploadFields, (req, res) => {
   const { name, description, price, original_price, category_id, quantity, defect_reason } = req.body;
 
   if (!name || price === undefined || price === '') {
@@ -185,7 +194,7 @@ router.get('/:id', requireAuth, (req, res) => {
 });
 
 // GET /:id/edit — Edit product form
-router.get('/:id/edit', requireAuth, (req, res) => {
+router.get('/:id/edit', requireAdmin, (req, res) => {
   const db = getDB();
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id));
   if (!product) {
@@ -198,7 +207,7 @@ router.get('/:id/edit', requireAuth, (req, res) => {
 });
 
 // POST /:id/edit — Update product
-router.post('/:id/edit', requireAuth, uploadFields, (req, res) => {
+router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
   const { name, description, price, original_price, category_id, quantity, defect_reason, is_active } = req.body;
 
   if (!name || price === undefined || price === '') {
@@ -250,7 +259,7 @@ router.post('/:id/edit', requireAuth, uploadFields, (req, res) => {
 });
 
 // POST /:id/toggle — Toggle product active status
-router.post('/:id/toggle', requireAuth, (req, res) => {
+router.post('/:id/toggle', requireAdmin, (req, res) => {
   const db = getDB();
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id));
   if (!product) {

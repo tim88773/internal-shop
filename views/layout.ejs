@@ -429,9 +429,11 @@
       <a href="/products">商品瀏覽</a>
       <a href="/orders/cart">購物車<% if (typeof session !== 'undefined' && session && session._cart && session._cart.length) { %><span class="cart-badge"><%= session._cart.length %></span><% } %></a>
       <a href="/orders/my">我的訂單</a>
-      <a href="/products/manage">商品管理</a>
-      <a href="/categories">分類管理</a>
-      <a href="/orders">所有訂單</a>
+      <% if (currentUser && currentUser.role === 'admin') { %>
+        <a href="/products/manage">商品管理</a>
+        <a href="/categories">分類管理</a>
+        <a href="/orders">所有訂單</a>
+      <% } %>
     </nav>
     <div class="user-info">
       <span class="name"><%= currentUser.display_name %></span>

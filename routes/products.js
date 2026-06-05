@@ -42,7 +42,7 @@ router.get('/', requireAuth, (req, res) => {
 
   if (categoryId) {
     sql += ' AND p.category_id = ?';
-    params.push(categoryId);
+    params.push(Number(categoryId));
   }
   if (search) {
     sql += ' AND (p.name LIKE ? OR p.description LIKE ?)';
@@ -106,7 +106,7 @@ router.post('/new', requireAuth, upload.single('image'), (req, res) => {
 
 router.get('/:id/edit', requireAuth, (req, res) => {
   const db = getDB();
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id));
   if (!product) {
     req.flash('error', '找不到该商品');
     return res.redirect('/products/manage');
@@ -151,14 +151,14 @@ router.post('/:id/edit', requireAuth, upload.single('image'), (req, res) => {
 
 router.post('/:id/toggle', requireAuth, (req, res) => {
   const db = getDB();
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id));
   if (!product) {
     req.flash('error', '找不到该商品');
     return res.redirect('/products/manage');
   }
 
   db.raw.exec('UPDATE products SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [product.is_active ? 0 : 1, req.params.id]);
+    [product.is_active ? 0 : 1, Number(req.params.id)]);
 
   const action = product.is_active ? '下架' : '上架';
   req.flash('success', '商品\u300c' + product.name + '\u300d已' + action);

@@ -112,16 +112,16 @@ router.get('/my', reqAuth, (req, res) => {
 
 router.get('/:id', reqAuth, (req, res) => {
   const db = getDB();
-  const o = db.prepare("SELECT o.*, e.display_name, e.email FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.id = ?").get(req.params.id);
+  const o = db.prepare("SELECT o.*, e.display_name, e.email FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.id = ?").get(Number(req.params.id));
   if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
-  const items = db.prepare("SELECT oi.*, p.name, p.defect_reason, p.image_url FROM order_items oi JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?").all(req.params.id);
+  const items = db.prepare("SELECT oi.*, p.name, p.defect_reason, p.image_url FROM order_items oi JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?").all(Number(req.params.id));
   res.render('orders/detail', { title: 'Order #' + o.id, order: o, items, statusLabel, nextStatus: NEXT_STATUS[o.status] || null });
 });
 
 // Cancel order (only pending)
 router.post('/:id/cancel', reqAuth, (req, res) => {
   const db = getDB();
-  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
   if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
   if (o.status !== 'pending') { req.flash('error', 'Only pending'); return res.redirect('/orders/' + o.id); }
   const cancel = db.transaction(() => {
@@ -137,7 +137,7 @@ router.post('/:id/cancel', reqAuth, (req, res) => {
 // Advance order to next status
 router.post('/:id/advance', reqAuth, (req, res) => {
   const db = getDB();
-  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
   if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
   const next = NEXT_STATUS[o.status];
   if (!next) { req.flash('error', 'Cannot advance'); return res.redirect('/orders/' + o.id); }

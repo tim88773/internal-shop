@@ -40,7 +40,7 @@
       </div>
     </div>
     <div class="text-muted" style="font-size:13px;margin-top:8px;">
-      下單時間：<%= new Date(order.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) %>
+      下單時間：<%= new Date(order.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Taipei' }) %>
     </div>
     <% if (order.notes) { %>
       <div style="margin-top:8px;padding:10px;background:#f8fafc;border-radius:6px;font-size:13px;">
@@ -62,10 +62,20 @@
     <form action="/orders/<%= order.id %>/pay" method="POST" style="margin-top:12px;padding-top:12px;border-top:1px solid #fde68a;">
       <div class="form-group" style="margin-bottom:8px;">
         <label for="payment_last5" style="font-size:13px;font-weight:600;color:#92400e;">匯款帳號後五碼 *</label>
-        <input type="text" id="payment_last5" name="payment_last5" placeholder="請輸入 5 位數字" maxlength="5" pattern="\\d{5}" required style="width:160px;padding:8px 10px;border:1px solid #fde68a;border-radius:6px;font-size:14px;background:#fff;" oninput="document.getElementById('payBtn').disabled = this.value.length !== 5 || !/^\d{5}$/.test(this.value)">
+        <input type="text" id="payment_last5" name="payment_last5" placeholder="請輸入 5 位數字" maxlength="5" pattern="[0-9]{5}" required style="width:160px;padding:8px 10px;border:1px solid #fde68a;border-radius:6px;font-size:14px;background:#fff;" oninput="document.getElementById('payBtn').disabled = this.value.length !== 5 || !/^\d{5}$/.test(this.value)">
       </div>
       <button type="submit" id="payBtn" class="btn btn-success" disabled style="font-size:14px;">&#x2705; 完成匯款</button>
     </form>
+    <div style="margin-top:12px;padding-top:8px;border-top:1px solid #fde68a;text-align:center;">
+      <a href="#" onclick="document.getElementById('changePayMethod').style.display='block';this.style.display='none';return false;" style="font-size:13px;color:#92400e;">更改付款方式</a>
+      <div id="changePayMethod" style="display:none;margin-top:8px;">
+        <form action="/orders/<%= order.id %>/change-payment" method="POST">
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;margin-right:12px;"><input type="radio" name="payment_method" value="salary" required> 扣薪</label>
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="radio" name="payment_method" value="hq_pickup" required> 總部取付</label>
+          <button type="submit" class="btn btn-outline btn-sm" style="margin-left:8px;font-size:12px;">確認變更</button>
+        </form>
+      </div>
+    </div>
   </div>
   <% } %>
 

@@ -59,7 +59,7 @@
               <% if (currentUser.role === 'admin') { %><td><%= o.display_name %></td><% } %>
               <td><%= o.items_count %></td>
               <td><span class="status status-<%= o.status %>"><%= o.status === 'pending' ? '待處理' : o.status === 'accepted' ? '已接受' : o.status === 'shipped' ? '已出貨' : o.status === 'delivered' ? '已送達' : o.status === 'cancelled' ? '已取消' : o.status %></span></td>
-              <td class="text-muted"><%= new Date(o.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) %></td>
+              <td class="text-muted"><%= new Date(o.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Taipei' }) %></td>
               <td><a href="/orders/<%= o.id %>" class="btn btn-outline btn-sm">查看</a></td>
             </tr>
             <% }); %>

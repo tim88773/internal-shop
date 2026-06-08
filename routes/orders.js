@@ -259,6 +259,26 @@ router.post('/:id/pay', reqAuth, (req, res) => {
   res.redirect('/orders/' + o.id);
 });
 
+// Change payment method for unpaid transfer orders
+router.post('/:id/change-payment', reqAuth, (req, res) => {
+  const db = getDB();
+  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
+  if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
+  if (o.employee_id !== req.session.user.id && req.session.user.role !== 'admin') {
+    req.flash('error', '無權限操作'); return res.redirect('/orders');
+  }
+  if (o.payment_method !== 'transfer' || o.payment_status !== 'pending') {
+    req.flash('error', '此訂單無法更改付款方式'); return res.redirect('/orders/' + o.id);
+  }
+  var newMethod = req.body.payment_method;
+  if (newMethod !== 'salary' && newMethod !== 'hq_pickup') {
+    req.flash('error', '請選擇有效的付款方式'); return res.redirect('/orders/' + o.id);
+  }
+  db.raw.exec("UPDATE orders SET payment_method = ?, payment_status = 'paid', updated_at = CURRENT_TIMESTAMP WHERE id = ?", [newMethod, o.id]);
+  req.flash('success', '付款方式已更改為 ' + (newMethod === 'salary' ? '扣薪' : '總部取付'));
+  res.redirect('/orders/' + o.id);
+});
+
 // Batch update orders status
 router.post('/batch-status', reqAdmin, (req, res) => {
   var ids = req.body.ids;

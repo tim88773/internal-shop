@@ -67,7 +67,7 @@
               <td><%= o.store || '-' %></td>
               <td style="font-weight:600;">$<%= Number(o.total_amount || 0).toLocaleString() %></td>
               <td><span class="status status-<%= o.status %>"><%= statusLabel(o.status) %></span></td>
-              <td class="text-muted"><%= new Date(o.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) %></td>
+              <td class="text-muted"><%= new Date(o.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Taipei' }) %></td>
               <td><a href="/orders/<%= o.id %>" class="btn btn-outline btn-sm">詳細</a></td>
             </tr>
             <% }); %>

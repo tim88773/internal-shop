@@ -29,7 +29,7 @@
               <td>#<%= c.id %></td>
               <td><strong><%= c.name %></strong></td>
               <td><%= c.product_count %></td>
-              <td class="text-muted"><%= new Date(c.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) %></td>
+              <td class="text-muted"><%= new Date(c.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Taipei' }) %></td>
               <td>
                 <div class="actions">
                   <a href="/categories/<%= c.id %>/edit" class="btn btn-outline btn-sm">編輯</a>

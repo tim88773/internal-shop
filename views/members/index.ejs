@@ -1,0 +1,38 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F465; 會員管理</h1>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>帳號</th>
+            <th>顯示名稱</th>
+            <th>Email</th>
+            <th>隸屬門市</th>
+            <th>權限</th>
+            <th>註冊時間</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% members.forEach(function(m) { %>
+          <tr>
+            <td>#<%= m.id %></td>
+            <td><%= m.username %></td>
+            <td><strong><%= m.display_name %></strong></td>
+            <td class="text-muted"><%= m.email || '-' %></td>
+            <td><%= m.store || '-' %></td>
+            <td><span class="status <%= m.role === 'admin' ? 'status-accepted' : 'status-pending' %>"><%= m.role === 'admin' ? '管理員' : '一般' %></span></td>
+            <td class="text-muted"><%= new Date(m.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Taipei' }) %></td>
+            <td><a href="/members/<%= m.id %>/edit" class="btn btn-outline btn-sm">編輯</a></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const router = express.Router();
 const { getDB } = require('../db');
+const ExcelJS = require('exceljs');
 
 function reqAuth(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
@@ -169,6 +170,100 @@ router.post('/:id/advance', reqAdmin, (req, res) => {
   db.raw.exec('UPDATE orders SET status = ? WHERE id = ?', [next, o.id]);
   req.flash('success', 'Order #' + o.id + ' ' + statusLabel(next));
   res.redirect('/orders/' + o.id);
+});
+
+
+// Batch update orders status
+router.post('/batch-status', reqAdmin, (req, res) => {
+  var ids = req.body.ids;
+  var action = req.body.action;
+  if (!ids || ids.length === 0) {
+    req.flash('error', '請選擇訂單');
+    return res.redirect('/orders');
+  }
+  if (!Array.isArray(ids)) ids = [ids];
+  var db = getDB();
+  var nextMap = { 'accept': 'accepted', 'ship': 'shipped', 'complete': 'delivered' };
+  var nextStatus = nextMap[action];
+  if (!nextStatus) { req.flash('error', '無效的操作'); return res.redirect('/orders'); }
+  var update = db.transaction(function() {
+    ids.forEach(function(id) {
+      var o = db.prepare('SELECT status FROM orders WHERE id = ?').get(Number(id));
+      if (o) {
+        var validNext = { 'pending': 'accepted', 'accepted': 'shipped', 'shipped': 'delivered' };
+        if (validNext[o.status] === nextStatus) {
+          db.raw.exec('UPDATE orders SET status = ? WHERE id = ?', [nextStatus, Number(id)]);
+        }
+      }
+    });
+  });
+  update();
+  req.flash('success', '已更新 ' + ids.length + ' 筆訂單');
+  res.redirect('/orders');
+});
+
+// Export orders to Excel
+router.get('/export', reqAdmin, (req, res) => {
+  var db = getDB();
+  var orders = db.prepare("SELECT o.*, e.display_name as employee_name, (SELECT SUM(quantity * unit_price) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id ORDER BY o.created_at DESC").all();
+
+  var ExcelJS = require('exceljs');
+  var workbook = new ExcelJS.Workbook();
+  var sheet = workbook.addWorksheet('訂單明細');
+
+  sheet.columns = [
+    { header: '訂單編號', key: 'id', width: 12 },
+    { header: '下單員工', key: 'employee_name', width: 16 },
+    { header: '總金額', key: 'total_amount', width: 14 },
+    { header: '狀態', key: 'status', width: 12 },
+    { header: '備註', key: 'notes', width: 20 },
+    { header: '下單時間', key: 'created_at', width: 20 }
+  ];
+
+  var statusLabels = {
+    'pending': '待處理',
+    'accepted': '已接受',
+    'shipped': '已出貨',
+    'delivered': '已送達',
+    'cancelled': '已取消'
+  };
+
+  orders.forEach(function(o) {
+    sheet.addRow({
+      id: o.id,
+      employee_name: o.employee_name,
+      total_amount: o.total_amount || 0,
+      status: statusLabels[o.status] || o.status,
+      notes: o.notes || '',
+      created_at: new Date(o.created_at).toLocaleString('zh-TW')
+    });
+  });
+
+  // Add order items detail below
+  sheet.addRow([]);
+  sheet.addRow(['=== 訂單項目明細 ===']);
+  sheet.addRow(['訂單編號', '商品名稱', '尺寸', '顏色', '單價', '數量', '小計']);
+
+  orders.forEach(function(o) {
+    var items = db.prepare("SELECT oi.*, p.name FROM order_items oi JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?").all(o.id);
+    items.forEach(function(item) {
+      sheet.addRow({
+        id: o.id,
+        employee_name: item.name,
+        total_amount: item.product_size || '',
+        status: item.product_color || '',
+        notes: item.unit_price,
+        created_at: item.quantity
+      });
+    });
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename=orders_export.xlsx');
+
+  workbook.xlsx.write(res).then(function() {
+    res.end();
+  });
 });
 
 module.exports = router;

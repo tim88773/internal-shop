@@ -66,8 +66,14 @@ router.post('/cart/add', reqAuth, (req, res) => {
   var selSize = req.body.size || '';
   var selColor = req.body.color || '';
   if (ex) { ex.qty += qty; } else { req.session._cart.push({ productId: pid, qty: qty, selectedSize: selSize, selectedColor: selColor }); }
-  req.flash('success', 'Added!');
-  res.redirect('/products');
+  req.flash('success', '已加入購物車！');
+  // 從商品明細頁加入則留在原頁，否則回商品列表
+  var referer = req.headers.referer || '';
+  if (referer.match(/\/products\/\d+($|\?)/)) {
+    res.redirect(referer);
+  } else {
+    res.redirect('/products');
+  }
 });
 
 router.post('/cart/update', reqAuth, (req, res) => {

@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const { getDB } = require('../db');
 
 router.get('/login', (req, res) => {
-  if (req.session.user) return res.redirect('/dashboard');
+  if (req.session.user) return res.redirect(req.session.user.role === 'admin' ? '/dashboard' : '/products');
   res.render('login', { title: 'Login' });
 });
 
@@ -23,12 +23,13 @@ router.post('/login', (req, res) => {
   }
 
   req.session.user = { id: user.id, username: user.username, display_name: user.display_name, store: user.store || '', role: user.role };
-  req.flash('success', 'Welcome back, ' + user.display_name + '!');
-  res.redirect('/dashboard');
+  req.flash('success', '歡迎回來，' + user.display_name + '！');
+  var redirectUrl = (user.role === 'admin') ? '/dashboard' : '/products';
+  res.redirect(redirectUrl);
 });
 
 router.get('/register', (req, res) => {
-  if (req.session.user) return res.redirect('/dashboard');
+  if (req.session.user) return res.redirect(req.session.user.role === 'admin' ? '/dashboard' : '/products');
   res.render('register', { title: 'Register' });
 });
 

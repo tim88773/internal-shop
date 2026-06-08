@@ -72,6 +72,7 @@ app.use('/members', require('./routes/members'));
 
 app.get('/dashboard', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
+  if (req.session.user.role !== 'admin') return res.redirect('/products');
   const db = getDB();
 
   const pc = db.prepare("SELECT COUNT(1) as cnt FROM products WHERE is_active = 1").get();
@@ -90,7 +91,7 @@ app.get('/dashboard', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  if (req.session.user) return res.redirect('/dashboard');
+  if (req.session.user) return res.redirect(req.session.user.role === 'admin' ? '/dashboard' : '/products');
   res.redirect('/login');
 });
 

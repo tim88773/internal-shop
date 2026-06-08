@@ -2,9 +2,10 @@
   <div class="flex-between mb-4">
     <h1 style="font-size:22px;font-weight:700;">&#x1F4CB; <%= typeof myOrders !== 'undefined' && myOrders ? '我的訂單' : '所有訂單' %></h1>
     <% if (typeof myOrders !== 'undefined' && myOrders) { %>
-      <a href="/orders" class="btn btn-outline"><a href="/orders/export" class="btn btn-primary btn-sm">&#x1F4E5; 匯出 Excel</a>
-      查看所有訂單</a>
+      <a href="/orders/export" class="btn btn-primary btn-sm">&#x1F4E5; 匯出 Excel</a>
+      <a href="/orders" class="btn btn-outline">查看所有訂單</a>
     <% } else { %>
+      <a href="/orders/export" class="btn btn-primary btn-sm">📥 匯出 Excel</a>
       <a href="/orders/my" class="btn btn-outline">我的訂單</a>
     <% } %>
   </div>
@@ -58,6 +59,7 @@
           <tbody>
             <% orders.forEach(function(o) { %>
             <tr>
+              <td><% if (currentUser && currentUser.role === "admin" && (!myOrders)) { %><input type="checkbox" class="order-check" value="<%= o.id %>"><% } %></td>
               <td><strong>#<%= o.id %></strong></td>
               <td><%= o.display_name %></td>
               <td><%= o.items_count %> 件</td>

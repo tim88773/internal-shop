@@ -57,6 +57,12 @@ router.post('/cart/add', reqAuth, (req, res) => {
   const ex = req.session._cart.find(c => c.productId === pid);
   const need = (ex ? ex.qty : 0) + qty;
   if (p.quantity < need) { req.flash('error', 'Stock'); return res.redirect('/products'); }
+  // Validate size/color if product has them
+  var pSizes = []; var pColors = [];
+  try { pSizes = JSON.parse(p.sizes || '[]'); } catch(e){}
+  try { pColors = JSON.parse(p.colors || '[]'); } catch(e){}
+  if (pSizes.length > 0 && !req.body.size) { req.flash('error', '請選擇尺寸'); return res.redirect('/products'); }
+  if (pColors.length > 0 && !req.body.color) { req.flash('error', '請選擇顏色'); return res.redirect('/products'); }
   var selSize = req.body.size || '';
   var selColor = req.body.color || '';
   if (ex) { ex.qty += qty; } else { req.session._cart.push({ productId: pid, qty: qty, selectedSize: selSize, selectedColor: selColor }); }

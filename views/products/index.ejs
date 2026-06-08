@@ -60,14 +60,46 @@
             <% if (p.quantity === 0) { %><span style="color:var(--danger);font-weight:600;">（已售罄）</span><% } %>
           </div>
 
-          <form action="/orders/cart/add" method="POST" style="margin-top:10px;display:flex;gap:8px;">
+          <% var pSizes = []; var pColors = []; try { pSizes = JSON.parse(p.sizes || "[]"); } catch(e){} try { pColors = JSON.parse(p.colors || "[]"); } catch(e){} %>
+          <form action="/orders/cart/add" method="POST" style="margin-top:10px;" onsubmit="return validateCart(this)">
             <input type="hidden" name="product_id" value="<%= p.id %>">
-            <input type="number" name="quantity" value="1" min="1" max="<%= p.quantity %>" style="width:60px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:14px;">
-            <button type="submit" class="btn btn-primary btn-sm" <%= p.quantity === 0 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '' %>><%= p.quantity === 0 ? '已售罄' : '加入購物車' %></button>
-          </form>
-        </div>
+            <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+              <% if (pSizes.length > 0) { %>
+              <select name="size" required style="flex:1;min-width:55px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;background:#fff;">
+                <option value="">尺寸</option>
+                <% pSizes.forEach(function(s) { %>
+                <option value="<%= s %>"><%= s %></option>
+                <% }); %>
+              </select>
+              <% } %>
+              <% if (pColors.length > 0) { %>
+              <select name="color" required style="flex:1;min-width:55px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;background:#fff;">
+                <option value="">顏色</option>
+                <% pColors.forEach(function(c) { %>
+                <option value="<%= c %>"><%= c %></option>
+                <% }); %>
+              </select>
+              <% } %>
+              <input type="number" name="quantity" value="1" min="1" max="<%= p.quantity %>" style="width:50px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
+              <button type="submit" class="btn btn-primary btn-sm" <%= p.quantity === 0 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '' %>><%= p.quantity === 0 ? '已售罄' : '加入' %></button>
+            </div>
+          </form>        </div>
       </div>
       <% }); %>
     </div>
   <% } %>
 </div>
+
+<script>
+function validateCart(form) {
+  var selects = form.querySelectorAll('select[required]');
+  for (var i = 0; i < selects.length; i++) {
+    if (!selects[i].value) {
+      alert('請選擇 ' + (selects[i].name === 'size' ? '尺寸' : '顏色'));
+      selects[i].focus();
+      return false;
+    }
+  }
+  return true;
+}
+</script>

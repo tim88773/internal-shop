@@ -1,0 +1,46 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F464; 會員資料</h1>
+    <a href="/dashboard" class="btn btn-outline">回儀表板</a>
+  </div>
+
+  <div class="card" style="max-width:500px;margin:0 auto;">
+    <% if (typeof success !== 'undefined' && success && success.length) { %>
+      <% success.forEach(function(msg) { %><div class="flash flash-success">&#10003; <%- msg %></div><% }); %>
+    <% } %>
+    <% if (typeof error !== 'undefined' && error && error.length) { %>
+      <% error.forEach(function(msg) { %><div class="flash flash-error">&#9888; <%- msg %></div><% }); %>
+    <% } %>
+
+    <form action="/profile" method="POST">
+      <div class="form-group">
+        <label for="display_name">顯示名稱 *</label>
+        <input type="text" id="display_name" name="display_name" value="<%= user.display_name %>" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="<%= user.email || '' %>">
+      </div>
+      <div class="form-group">
+        <label for="store">隸屬門市</label>
+        <input type="text" id="store" name="store" value="<%= user.store || '' %>" placeholder="例如：台北門市">
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
+
+      <p class="text-muted" style="font-size:13px;margin-bottom:12px;">如不修改密碼請留空</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="password">新密碼</label>
+          <input type="password" id="password" name="password" placeholder="留空則不變" minlength="4">
+        </div>
+        <div class="form-group">
+          <label for="confirm_password">確認新密碼</label>
+          <input type="password" id="confirm_password" name="confirm_password" placeholder="再次輸入新密碼">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">&#x1F504; 儲存變更</button>
+    </form>
+  </div>
+</div>

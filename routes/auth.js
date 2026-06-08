@@ -55,7 +55,7 @@ router.post('/register', (req, res) => {
     return res.redirect('/register');
   }
 
-  if (!store) { req.flash('error', '請填寫所屬門市'); return res.redirect('/register'); }
+  if (!store) { req.flash('error', '請填寫隸屬門市'); return res.redirect('/register'); }
   const hashed = bcrypt.hashSync(password, 10);
   db.raw.exec('INSERT INTO employees (username, password, display_name, email, store, role) VALUES (?, ?, ?, ?, ?, ?)',
     [username, hashed, display_name, email || null, store, 'user']);

@@ -67,6 +67,7 @@ app.use('/', require('./routes/auth'));
 app.use('/products', require('./routes/products'));
 app.use('/orders', require('./routes/orders'));
 app.use('/categories', require('./routes/categories'));
+app.use('/profile', require('./routes/profile'));
 
 app.get('/dashboard', (req, res) => {
   if (!req.session.user) return res.redirect('/login');

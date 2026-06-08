@@ -58,6 +58,20 @@
         </div>
         <form action="/orders/checkout" method="POST" style="margin-top:12px;">
           <div class="form-group">
+            <label style="font-weight:600;font-size:14px;color:var(--text);margin-bottom:8px;display:block;">付款方式 *</label>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+                <input type="radio" name="payment_method" value="transfer" required onchange="toggleTransferInfo()"> 匯款
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+                <input type="radio" name="payment_method" value="salary" required> 扣薪
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+                <input type="radio" name="payment_method" value="hq_pickup" required> 總部取付
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
             <label for="notes">備註（選填）</label>
             <textarea id="notes" name="notes" placeholder="例如：放置位置、注意事項等" style="min-height:50px;"></textarea>
           </div>

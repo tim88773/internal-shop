@@ -113,6 +113,12 @@ function getDB() {
   var oiCols = db.prepare("PRAGMA table_info(order_items)").all().map(function(c) { return c.name; });
   if (oiCols.indexOf('product_size') === -1) db.exec("ALTER TABLE order_items ADD COLUMN product_size TEXT DEFAULT ''");
   if (oiCols.indexOf('product_color') === -1) db.exec("ALTER TABLE order_items ADD COLUMN product_color TEXT DEFAULT ''");
+  // Add payment columns to orders
+  var ordCols = db.prepare("PRAGMA table_info(orders)").all().map(function(c) { return c.name; });
+  if (ordCols.indexOf('payment_method') === -1) db.exec("ALTER TABLE orders ADD COLUMN payment_method TEXT DEFAULT ''");
+  if (ordCols.indexOf('payment_status') === -1) db.exec("ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'pending'");
+  if (ordCols.indexOf('payment_last5') === -1) db.exec("ALTER TABLE orders ADD COLUMN payment_last5 TEXT DEFAULT ''");
+
   // Add store columns
   var empCols = db.prepare("PRAGMA table_info(employees)").all().map(function(c) { return c.name; });
   if (empCols.indexOf('store') === -1) db.exec("ALTER TABLE employees ADD COLUMN store TEXT DEFAULT ''");

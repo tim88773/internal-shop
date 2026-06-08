@@ -432,6 +432,7 @@
       <a href="/products">商品瀏覽</a>
       <a href="/orders/cart">購物車<% if (typeof session !== 'undefined' && session && session._cart && session._cart.length) { %><span class="cart-badge"><%= session._cart.length %></span><% } %></a>
       <a href="/orders/my">我的訂單</a>
+      <a href="/profile">會員資料</a>
       <% if (currentUser && currentUser.role === 'admin') { %>
         <a href="/products/manage">商品管理</a>
         <a href="/categories">分類管理</a>

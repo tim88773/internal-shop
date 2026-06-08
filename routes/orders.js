@@ -93,6 +93,9 @@ router.post('/cart/remove', reqAuth, (req, res) => {
 router.post('/checkout', reqAuth, (req, res) => {
   const cart = req.session._cart || [];
   if (cart.length === 0) { req.flash('error', 'Empty'); return res.redirect('/orders/cart'); }
+  var paymentMethod = req.body.payment_method || '';
+  if (!paymentMethod) { req.flash('error', '請選擇付款方式'); return res.redirect('/orders/cart'); }
+  var paymentStatus = (paymentMethod === 'transfer') ? 'pending' : 'paid';
   const db = getDB();
   const placeOrder = db.transaction(() => {
     for (const item of cart) {
@@ -100,7 +103,7 @@ router.post('/checkout', reqAuth, (req, res) => {
       if (!p) throw new Error('Not found');
       if (p.quantity < item.qty) throw new Error('Stock');
     }
-    var insertResult = db.prepare('INSERT INTO orders (employee_id, notes) VALUES (?, ?)').run(req.session.user.id, req.body.notes || '');
+    var insertResult = db.prepare('INSERT INTO orders (employee_id, notes, payment_method, payment_status) VALUES (?, ?, ?, ?)').run(req.session.user.id, req.body.notes || '', paymentMethod, paymentStatus);
     var oid = Number(insertResult.lastInsertRowid);
     for (const item of cart) {
       const p = db.prepare('SELECT price FROM products WHERE id = ?').get(item.productId);
@@ -112,7 +115,7 @@ router.post('/checkout', reqAuth, (req, res) => {
   try {
     const oid = placeOrder();
     req.session._cart = [];
-    req.flash('success', 'Order #' + oid + ' placed!');
+    req.flash('success', '訂單 #' + oid + ' 已建立！');
     res.redirect('/orders/' + oid);
   } catch (e) {
     req.flash('error', e.message);
@@ -123,7 +126,7 @@ router.post('/checkout', reqAuth, (req, res) => {
 
 router.get('/', reqAdmin, (req, res) => {
   const db = getDB();
-  const orders = db.prepare("SELECT o.*, e.display_name, e.store, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id ORDER BY o.created_at DESC").all();
+  const orders = db.prepare("SELECT o.*, e.display_name, e.store, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.payment_method != 'transfer' OR o.payment_status = 'paid' ORDER BY o.created_at DESC").all();
   res.render('orders/index', { title: 'All Orders', orders, myOrders: false, statusLabel });
 });
 
@@ -234,6 +237,27 @@ router.post('/:id/advance', reqAdmin, (req, res) => {
   res.redirect('/orders/' + o.id);
 });
 
+
+// Complete transfer payment
+router.post('/:id/pay', reqAuth, (req, res) => {
+  const db = getDB();
+  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
+  if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
+  if (o.employee_id !== req.session.user.id && req.session.user.role !== 'admin') {
+    req.flash('error', '無權限操作'); return res.redirect('/orders');
+  }
+  if (o.payment_method !== 'transfer' || o.payment_status === 'paid') {
+    req.flash('error', '此訂單無需匯款'); return res.redirect('/orders/' + o.id);
+  }
+  var last5 = (req.body.payment_last5 || '').trim();
+  if (!last5 || last5.length !== 5 || !/^\\d{5}$/.test(last5)) {
+    req.flash('error', '請輸入正確的匯款帳號後五碼（5 位數字）');
+    return res.redirect('/orders/' + o.id);
+  }
+  db.raw.exec("UPDATE orders SET payment_status = 'paid', payment_last5 = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [last5, o.id]);
+  req.flash('success', '匯款成功！訂單 #' + o.id + ' 已確認');
+  res.redirect('/orders/' + o.id);
+});
 
 // Batch update orders status
 router.post('/batch-status', reqAdmin, (req, res) => {

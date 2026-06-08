@@ -128,6 +128,55 @@ router.get('/my', reqAuth, (req, res) => {
   res.render('orders/index', { title: 'My Orders', orders, myOrders: true, statusLabel });
 });
 
+// Export orders to Excel
+router.get('/export', reqAdmin, (req, res) => {
+  var db = getDB();
+  var items = db.prepare("SELECT oi.*, o.employee_id, o.created_at as order_date, e.display_name as employee_name, p.name as product_name FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN employees e ON e.id = o.employee_id JOIN products p ON p.id = oi.product_id ORDER BY o.id").all();
+
+  var workbook = new ExcelJS.Workbook();
+  var sheet = workbook.addWorksheet('訂單明細');
+
+  // Style the header row
+  sheet.columns = [
+    { header: '訂單編號', key: 'orderId', width: 14 },
+    { header: '下單員工', key: 'employee', width: 16 },
+    { header: '下單商品', key: 'product', width: 30 },
+    { header: '下單商品尺碼', key: 'size', width: 14 },
+    { header: '下單商品顏色', key: 'color', width: 14 },
+    { header: '下單商品數量', key: 'qty', width: 14 },
+    { header: '下單商品單價', key: 'price', width: 16 },
+    { header: '下單商品小計', key: 'subtotal', width: 16 }
+  ];
+
+  // Add header row styling
+  var headerRow = sheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC98686' } };
+  headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+  items.forEach(function(item) {
+    var subtotal = Number(item.unit_price) * Number(item.quantity);
+    var row = sheet.addRow({
+      orderId: item.order_id,
+      employee: item.employee_name,
+      product: item.product_name,
+      size: item.product_size || '',
+      color: item.product_color || '',
+      qty: item.quantity,
+      price: Number(item.unit_price).toLocaleString(),
+      subtotal: Number(subtotal).toLocaleString()
+    });
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename=orders_export.xlsx');
+
+  workbook.xlsx.write(res).then(function() {
+    res.end();
+  });
+});
+
+
 router.get('/:id', reqAuth, (req, res) => {
   const db = getDB();
   const o = db.prepare("SELECT o.*, e.display_name, e.email FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.id = ?").get(Number(req.params.id));
@@ -206,70 +255,6 @@ router.post('/batch-status', reqAdmin, (req, res) => {
   update();
   req.flash('success', '已更新 ' + ids.length + ' 筆訂單');
   res.redirect('/orders');
-});
-
-// Export orders to Excel
-router.get('/export', reqAdmin, (req, res) => {
-  var db = getDB();
-  var orders = db.prepare("SELECT o.*, e.display_name as employee_name, (SELECT SUM(quantity * unit_price) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id ORDER BY o.created_at DESC").all();
-
-  var ExcelJS = require('exceljs');
-  var workbook = new ExcelJS.Workbook();
-  var sheet = workbook.addWorksheet('訂單明細');
-
-  sheet.columns = [
-    { header: '訂單編號', key: 'id', width: 12 },
-    { header: '下單員工', key: 'employee_name', width: 16 },
-    { header: '總金額', key: 'total_amount', width: 14 },
-    { header: '狀態', key: 'status', width: 12 },
-    { header: '備註', key: 'notes', width: 20 },
-    { header: '下單時間', key: 'created_at', width: 20 }
-  ];
-
-  var statusLabels = {
-    'pending': '待處理',
-    'accepted': '已接受',
-    'shipped': '已出貨',
-    'delivered': '已送達',
-    'cancelled': '已取消'
-  };
-
-  orders.forEach(function(o) {
-    sheet.addRow({
-      id: o.id,
-      employee_name: o.employee_name,
-      total_amount: o.total_amount || 0,
-      status: statusLabels[o.status] || o.status,
-      notes: o.notes || '',
-      created_at: new Date(o.created_at).toLocaleString('zh-TW')
-    });
-  });
-
-  // Add order items detail below
-  sheet.addRow([]);
-  sheet.addRow(['=== 訂單項目明細 ===']);
-  sheet.addRow(['訂單編號', '商品名稱', '尺寸', '顏色', '單價', '數量', '小計']);
-
-  orders.forEach(function(o) {
-    var items = db.prepare("SELECT oi.*, p.name FROM order_items oi JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?").all(o.id);
-    items.forEach(function(item) {
-      sheet.addRow({
-        id: o.id,
-        employee_name: item.name,
-        total_amount: item.product_size || '',
-        status: item.product_color || '',
-        notes: item.unit_price,
-        created_at: item.quantity
-      });
-    });
-  });
-
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename=orders_export.xlsx');
-
-  workbook.xlsx.write(res).then(function() {
-    res.end();
-  });
 });
 
 module.exports = router;

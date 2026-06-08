@@ -250,7 +250,7 @@ router.post('/:id/pay', reqAuth, (req, res) => {
     req.flash('error', '此訂單無需匯款'); return res.redirect('/orders/' + o.id);
   }
   var last5 = (req.body.payment_last5 || '').trim();
-  if (!last5 || last5.length !== 5 || !/^\\d{5}$/.test(last5)) {
+  if (!last5 || last5.length !== 5 || !/^\d{5}$/.test(last5)) {
     req.flash('error', '請輸入正確的匯款帳號後五碼（5 位數字）');
     return res.redirect('/orders/' + o.id);
   }
@@ -261,22 +261,27 @@ router.post('/:id/pay', reqAuth, (req, res) => {
 
 // Change payment method for unpaid transfer orders
 router.post('/:id/change-payment', reqAuth, (req, res) => {
-  const db = getDB();
-  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
-  if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
-  if (o.employee_id !== req.session.user.id && req.session.user.role !== 'admin') {
-    req.flash('error', '無權限操作'); return res.redirect('/orders');
+  try {
+    const db = getDB();
+    const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
+    if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
+    if (o.employee_id !== req.session.user.id && req.session.user.role !== 'admin') {
+      req.flash('error', '無權限操作'); return res.redirect('/orders');
+    }
+    if (o.payment_method !== 'transfer' || o.payment_status !== 'pending') {
+      req.flash('error', '此訂單無法更改付款方式'); return res.redirect('/orders/' + o.id);
+    }
+    var newMethod = req.body.payment_method;
+    if (newMethod !== 'salary' && newMethod !== 'hq_pickup') {
+      req.flash('error', '請選擇有效的付款方式'); return res.redirect('/orders/' + o.id);
+    }
+    db.raw.exec("UPDATE orders SET payment_method = ?, payment_status = 'paid', updated_at = CURRENT_TIMESTAMP WHERE id = ?", [newMethod, o.id]);
+    req.flash('success', '付款方式已更改為 ' + (newMethod === 'salary' ? '扣薪' : '總部取付'));
+    res.redirect('/orders/' + o.id);
+  } catch (e) {
+    req.flash('error', '變更付款方式失敗：' + e.message);
+    res.redirect('/orders/' + req.params.id);
   }
-  if (o.payment_method !== 'transfer' || o.payment_status !== 'pending') {
-    req.flash('error', '此訂單無法更改付款方式'); return res.redirect('/orders/' + o.id);
-  }
-  var newMethod = req.body.payment_method;
-  if (newMethod !== 'salary' && newMethod !== 'hq_pickup') {
-    req.flash('error', '請選擇有效的付款方式'); return res.redirect('/orders/' + o.id);
-  }
-  db.raw.exec("UPDATE orders SET payment_method = ?, payment_status = 'paid', updated_at = CURRENT_TIMESTAMP WHERE id = ?", [newMethod, o.id]);
-  req.flash('success', '付款方式已更改為 ' + (newMethod === 'salary' ? '扣薪' : '總部取付'));
-  res.redirect('/orders/' + o.id);
 });
 
 // Batch update orders status

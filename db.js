@@ -119,6 +119,8 @@ function getDB() {
   if (ordCols.indexOf('payment_status') === -1) db.exec("ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'pending'");
   if (ordCols.indexOf('payment_last5') === -1) db.exec("ALTER TABLE orders ADD COLUMN payment_last5 TEXT DEFAULT ''");
 
+  if (ordCols.indexOf('updated_at') === -1) db.exec("ALTER TABLE orders ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP");
+
   // Add store columns
   var empCols = db.prepare("PRAGMA table_info(employees)").all().map(function(c) { return c.name; });
   if (empCols.indexOf('store') === -1) db.exec("ALTER TABLE employees ADD COLUMN store TEXT DEFAULT ''");

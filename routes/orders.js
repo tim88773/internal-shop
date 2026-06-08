@@ -123,20 +123,20 @@ router.post('/checkout', reqAuth, (req, res) => {
 
 router.get('/', reqAdmin, (req, res) => {
   const db = getDB();
-  const orders = db.prepare("SELECT o.*, e.display_name, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id ORDER BY o.created_at DESC").all();
+  const orders = db.prepare("SELECT o.*, e.display_name, e.store, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id ORDER BY o.created_at DESC").all();
   res.render('orders/index', { title: 'All Orders', orders, myOrders: false, statusLabel });
 });
 
 router.get('/my', reqAuth, (req, res) => {
   const db = getDB();
-  const orders = db.prepare("SELECT o.*, e.display_name, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.employee_id = ? ORDER BY o.created_at DESC").all(req.session.user.id);
+  const orders = db.prepare("SELECT o.*, e.display_name, e.store, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.employee_id = ? ORDER BY o.created_at DESC").all(req.session.user.id);
   res.render('orders/index', { title: 'My Orders', orders, myOrders: true, statusLabel });
 });
 
 // Export orders to Excel
 router.get('/export', reqAdmin, (req, res) => {
   var db = getDB();
-  var items = db.prepare("SELECT oi.*, o.employee_id, o.created_at as order_date, e.display_name as employee_name, p.name as product_name FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN employees e ON e.id = o.employee_id JOIN products p ON p.id = oi.product_id ORDER BY o.id").all();
+  var items = db.prepare("SELECT oi.*, o.employee_id, o.created_at as order_date, e.display_name as employee_name, e.store, p.name as product_name FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN employees e ON e.id = o.employee_id JOIN products p ON p.id = oi.product_id ORDER BY o.id").all();
 
   var workbook = new ExcelJS.Workbook();
   var sheet = workbook.addWorksheet('訂單明細');
@@ -145,6 +145,7 @@ router.get('/export', reqAdmin, (req, res) => {
   sheet.columns = [
     { header: '訂單編號', key: 'orderId', width: 14 },
     { header: '下單員工', key: 'employee', width: 16 },
+    { header: '所屬門市', key: 'store', width: 14 },
     { header: '下單商品', key: 'product', width: 30 },
     { header: '下單商品尺碼', key: 'size', width: 14 },
     { header: '下單商品顏色', key: 'color', width: 14 },
@@ -164,6 +165,7 @@ router.get('/export', reqAdmin, (req, res) => {
     var row = sheet.addRow({
       orderId: item.order_id,
       employee: item.employee_name,
+      store: item.store || '',
       product: item.product_name,
       size: item.product_size || '',
       color: item.product_color || '',

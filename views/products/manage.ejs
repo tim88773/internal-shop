@@ -12,6 +12,7 @@
             <th>ID</th>
             <th>名稱</th>
             <th>分類</th>
+            <th>所屬門市</th>
             <th>價格</th>
             <th>原價</th>
             <th>庫存</th>
@@ -33,6 +34,7 @@
             </td>
             <td><strong><%= p.name %></strong></td>
             <td><%= p.category_name || '-' %></td>
+            <td><%= p.store || '-' %></td>
             <td style="color:var(--danger);font-weight:600;">$<%= Number(p.price).toLocaleString() %></td>
             <td class="text-muted"><%= p.original_price ? '$' + Number(p.original_price).toLocaleString() : '-' %></td>
             <td><%= p.quantity %></td>

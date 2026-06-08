@@ -2,34 +2,38 @@
   <div class="card">
     <div style="text-align:center;">
       <div style="font-size:48px;margin-bottom:12px;">&#x1F6D2;</div>
-      <h1 style="font-size:22px;font-weight:700;margin-bottom:4px;">员工注册</h1>
-      <p class="text-muted" style="margin-bottom:20px;">建立内部瑕疵品购买账号</p>
+      <h1 style="font-size:22px;font-weight:700;margin-bottom:4px;">員工註冊</h1>
+      <p class="text-muted" style="margin-bottom:20px;">建立內部購物商城帳號</p>
     </div>
 
     <form action="/register" method="POST">
       <div class="form-group">
-        <label for="username">账号 *</label>
-        <input type="text" id="username" name="username" placeholder="登录用账号" required>
+        <label for="username">帳號 *</label>
+        <input type="text" id="username" name="username" placeholder="登入用帳號" required>
       </div>
       <div class="form-group">
         <label for="display_name">顯示名稱 *</label>
-        <input type="text" id="display_name" name="display_name" placeholder="你的姓名或昵称" required>
+        <input type="text" id="display_name" name="display_name" placeholder="你的姓名或暱稱" required>
       </div>
       <div class="form-group">
         <label for="email">Email</label>
-        <input type="email" id="email" name="email" placeholder="选填">
+        <input type="email" id="email" name="email" placeholder="選填">
+      </div>
+      <div class="form-group">
+        <label for="store">所屬門市 *</label>
+        <input type="text" id="store" name="store" placeholder="例如：台北門市" required>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label for="password">密碼 *</label>
-          <input type="password" id="password" name="password" placeholder="至少 4 码" required minlength="4">
+          <input type="password" id="password" name="password" placeholder="至少 4 碼" required minlength="4">
         </div>
         <div class="form-group">
           <label for="confirm_password">確認密碼 *</label>
-          <input type="password" id="confirm_password" name="confirm_password" placeholder="再次输入密碼" required minlength="4">
+          <input type="password" id="confirm_password" name="confirm_password" placeholder="再次輸入密碼" required minlength="4">
         </div>
       </div>
-      <button type="submit" class="btn btn-primary btn-block">注册</button>
+      <button type="submit" class="btn btn-primary btn-block">註冊</button>
     </form>
     <div style="text-align:center;margin-top:16px;font-size:13px;">
       已有帳號？<a href="/login">立即登入</a>

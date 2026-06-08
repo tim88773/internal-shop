@@ -50,6 +50,7 @@
               <th>訂單編號</th>
               <th>下單員工</th>
               <th>品項</th>
+              <th>所屬門市</th>
               <th>總金額</th>
               <th>狀態</th>
               <th>下單時間</th>
@@ -63,6 +64,7 @@
               <td><strong>#<%= o.id %></strong></td>
               <td><%= o.display_name %></td>
               <td><%= o.items_count %> 件</td>
+              <td><%= o.store || '-' %></td>
               <td style="font-weight:600;">$<%= Number(o.total_amount || 0).toLocaleString() %></td>
               <td><span class="status status-<%= o.status %>"><%= statusLabel(o.status) %></span></td>
               <td class="text-muted"><%= new Date(o.created_at).toLocaleString('zh-TW') %></td>

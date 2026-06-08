@@ -132,12 +132,14 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
     coverUrl = '/uploads/' + req.files.gallery[0].filename;
   }
 
-  var insertResult = db.prepare('INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+  var storeVal = req.body.store || '';
+  var insertResult = db.prepare('INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, store, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
     name, description || '', parseFloat(price) || 0,
     original_price ? parseFloat(original_price) : null,
     category_id ? Number(category_id) : null,
     parseInt(quantity) || 0,
     defect_reason || '',
+    storeVal,
     coverUrl || null
   );
 
@@ -235,6 +237,7 @@ router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
   updates.push('category_id = ?'); params.push(category_id ? Number(category_id) : null);
   updates.push('quantity = ?'); params.push(parseInt(quantity) || 0);
   updates.push('defect_reason = ?'); params.push(defect_reason || '');
+  updates.push('store = ?'); params.push(req.body.store || '');
   updates.push('is_active = ?'); params.push(is_active ? 1 : 0);
   var sizesArr2 = (req.body.sizes || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
   var colorsArr2 = (req.body.colors || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});

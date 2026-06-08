@@ -113,6 +113,11 @@ function getDB() {
   var oiCols = db.prepare("PRAGMA table_info(order_items)").all().map(function(c) { return c.name; });
   if (oiCols.indexOf('product_size') === -1) db.exec("ALTER TABLE order_items ADD COLUMN product_size TEXT DEFAULT ''");
   if (oiCols.indexOf('product_color') === -1) db.exec("ALTER TABLE order_items ADD COLUMN product_color TEXT DEFAULT ''");
+  // Add store columns
+  var empCols = db.prepare("PRAGMA table_info(employees)").all().map(function(c) { return c.name; });
+  if (empCols.indexOf('store') === -1) db.exec("ALTER TABLE employees ADD COLUMN store TEXT DEFAULT ''");
+  var prodCols2 = db.prepare("PRAGMA table_info(products)").all().map(function(c) { return c.name; });
+  if (prodCols2.indexOf('store') === -1) db.exec("ALTER TABLE products ADD COLUMN store TEXT DEFAULT ''");
   // Default admin account
   var row = db.prepare("SELECT id FROM employees WHERE username = ?").get('admin');
   if (!row) {

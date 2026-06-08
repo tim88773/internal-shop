@@ -30,6 +30,7 @@
         <div class="text-muted" style="font-size:13px;">下單員工</div>
         <div style="font-weight:600;"><%= order.display_name %></div>
         <% if (order.email) { %><div class="text-muted" style="font-size:12px;"><%= order.email %></div><% } %>
+        <% if (order.store) { %><div class="text-muted" style="font-size:12px;">所屬門市：<%= order.store %></div><% } %>
       </div>
       <div style="text-align:right;">
         <div class="text-muted" style="font-size:13px;">狀態</div>

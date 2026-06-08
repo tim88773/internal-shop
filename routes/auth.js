@@ -22,7 +22,7 @@ router.post('/login', (req, res) => {
     return res.redirect('/login');
   }
 
-  req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role };
+  req.session.user = { id: user.id, username: user.username, display_name: user.display_name, store: user.store || '', role: user.role };
   req.flash('success', 'Welcome back, ' + user.display_name + '!');
   res.redirect('/dashboard');
 });
@@ -33,7 +33,7 @@ router.get('/register', (req, res) => {
 });
 
 router.post('/register', (req, res) => {
-  const { username, password, confirm_password, display_name, email } = req.body;
+  const { username, password, confirm_password, display_name, email, store } = req.body;
 
   if (!username || !password || !display_name) {
     req.flash('error', 'Please fill all required fields');
@@ -55,9 +55,10 @@ router.post('/register', (req, res) => {
     return res.redirect('/register');
   }
 
+  if (!store) { req.flash('error', '請填寫所屬門市'); return res.redirect('/register'); }
   const hashed = bcrypt.hashSync(password, 10);
-  db.raw.exec('INSERT INTO employees (username, password, display_name, email, role) VALUES (?, ?, ?, ?, ?)',
-    [username, hashed, display_name, email || null, 'user']);
+  db.raw.exec('INSERT INTO employees (username, password, display_name, email, store, role) VALUES (?, ?, ?, ?, ?, ?)',
+    [username, hashed, display_name, email || null, store, 'user']);
 
   req.flash('success', 'Registration successful, please login');
   res.redirect('/login');

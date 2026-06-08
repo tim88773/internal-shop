@@ -68,37 +68,41 @@
         </div>
 
         <% if (product.is_active && product.quantity > 0) { %>
-                <div style="display:flex;gap:12px;margin-bottom:12px;">
-          <% if (productSizes.length > 0) { %>
-          <div>
-            <label for="size" style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px;">尺寸</label>
-            <select id="size" name="size" style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
-              <option value="">請選擇</option>
-              <% productSizes.forEach(function(s) { %>
-              <option value="<%= s %>"><%= s %></option>
-              <% }); %>
-            </select>
-          </div>
-          <% } %>
-          <% if (productColors.length > 0) { %>
-          <div>
-            <label for="color" style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px;">顏色</label>
-            <select id="color" name="color" style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
-              <option value="">請選擇</option>
-              <% productColors.forEach(function(c) { %>
-              <option value="<%= c %>"><%= c %></option>
-              <% }); %>
-            </select>
-          </div>
-          <% } %>
-        </div>
-        <form action="/orders/cart/add" method="POST" style="display:flex;gap:12px;align-items:center;padding-top:16px;border-top:1px solid var(--border);">
+        <form action="/orders/cart/add" method="POST">
           <input type="hidden" name="product_id" value="<%= product.id %>">
-          <div>
-            <label for="qty" style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px;">數量</label>
-            <input type="number" id="qty" name="quantity" value="1" min="1" max="<%= product.quantity %>" style="width:70px;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+          <div style="display:flex;gap:12px;margin-bottom:12px;">
+            <% if (productSizes.length > 0) { %>
+            <div>
+              <label for="size" style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px;">尺寸</label>
+              <select id="size" name="size" style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+                <option value="">請選擇</option>
+                <% productSizes.forEach(function(s) { %>
+                <option value="<%= s %>"><%= s %></option>
+                <% }); %>
+              </select>
+            </div>
+            <% } %>
+            <% if (productColors.length > 0) { %>
+            <div>
+              <label for="color" style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px;">顏色</label>
+              <select id="color" name="color" style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+                <option value="">請選擇</option>
+                <% productColors.forEach(function(c) { %>
+                <option value="<%= c %>"><%= c %></option>
+                <% }); %>
+              </select>
+            </div>
+            <% } %>
           </div>
-          <button type="submit" class="btn btn-primary" style="padding:12px 28px;font-size:15px;align-self:flex-end;">&#x1F6D2; 加入購物車</button>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border);">
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+              <div>
+                <label for="qty" style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px;">數量</label>
+                <input type="number" id="qty" name="quantity" value="1" min="1" max="<%= product.quantity %>" style="width:70px;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+              </div>
+              <button type="submit" class="btn btn-primary" style="padding:12px 28px;font-size:15px;">&#x1F6D2; 加入購物車</button>
+            </div>
+          </div>
         </form>
         <% if (inCart > 0) { %>
           <div style="margin-top:8px;font-size:13px;color:var(--success);">已在購物車中的數量：<%= inCart %></div>

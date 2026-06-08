@@ -47,33 +47,32 @@ router.get('/cart', reqAuth, (req, res) => {
 });
 
 router.post('/cart/add', reqAuth, (req, res) => {
+  function redirectBack() {
+    var ref = req.headers.referer || '';
+    if (ref.match(/\/products\/\d+($|\?)/)) { return res.redirect(ref); }
+    res.redirect('/products');
+  }
   const pid = parseInt(req.body.product_id);
   const qty = parseInt(req.body.quantity) || 1;
-  if (qty < 1) { req.flash('error', 'Qty > 0'); return res.redirect('/products'); }
+  if (qty < 1) { req.flash('error', 'Qty > 0'); return redirectBack(); }
   const db = getDB();
   const p = db.prepare('SELECT * FROM products WHERE id = ? AND is_active = 1').get(pid);
-  if (!p) { req.flash('error', 'Not found'); return res.redirect('/products'); }
+  if (!p) { req.flash('error', 'Not found'); return redirectBack(); }
   if (!req.session._cart) req.session._cart = [];
   const ex = req.session._cart.find(c => c.productId === pid);
   const need = (ex ? ex.qty : 0) + qty;
-  if (p.quantity < need) { req.flash('error', 'Stock'); return res.redirect('/products'); }
+  if (p.quantity < need) { req.flash('error', '庫存不足'); return redirectBack(); }
   // Validate size/color if product has them
   var pSizes = []; var pColors = [];
   try { pSizes = JSON.parse(p.sizes || '[]'); } catch(e){}
   try { pColors = JSON.parse(p.colors || '[]'); } catch(e){}
-  if (pSizes.length > 0 && !req.body.size) { req.flash('error', '請選擇尺寸'); return res.redirect('/products'); }
-  if (pColors.length > 0 && !req.body.color) { req.flash('error', '請選擇顏色'); return res.redirect('/products'); }
+  if (pSizes.length > 0 && !req.body.size) { req.flash('error', '請選擇尺寸'); return redirectBack(); }
+  if (pColors.length > 0 && !req.body.color) { req.flash('error', '請選擇顏色'); return redirectBack(); }
   var selSize = req.body.size || '';
   var selColor = req.body.color || '';
   if (ex) { ex.qty += qty; } else { req.session._cart.push({ productId: pid, qty: qty, selectedSize: selSize, selectedColor: selColor }); }
   req.flash('success', '已加入購物車！');
-  // 從商品明細頁加入則留在原頁，否則回商品列表
-  var referer = req.headers.referer || '';
-  if (referer.match(/\/products\/\d+($|\?)/)) {
-    res.redirect(referer);
-  } else {
-    res.redirect('/products');
-  }
+  redirectBack();
 });
 
 router.post('/cart/update', reqAuth, (req, res) => {

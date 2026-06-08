@@ -40,7 +40,7 @@
       </div>
     </div>
     <div class="text-muted" style="font-size:13px;margin-top:8px;">
-      下單時間：<%= new Date(order.created_at).toLocaleString('zh-TW') %>
+      下單時間：<%= new Date(order.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) %>
     </div>
     <% if (order.notes) { %>
       <div style="margin-top:8px;padding:10px;background:#f8fafc;border-radius:6px;font-size:13px;">
@@ -62,9 +62,9 @@
     <form action="/orders/<%= order.id %>/pay" method="POST" style="margin-top:12px;padding-top:12px;border-top:1px solid #fde68a;">
       <div class="form-group" style="margin-bottom:8px;">
         <label for="payment_last5" style="font-size:13px;font-weight:600;color:#92400e;">匯款帳號後五碼 *</label>
-        <input type="text" id="payment_last5" name="payment_last5" placeholder="請輸入 5 位數字" maxlength="5" pattern="\\d{5}" required style="width:160px;padding:8px 10px;border:1px solid #fde68a;border-radius:6px;font-size:14px;background:#fff;">
+        <input type="text" id="payment_last5" name="payment_last5" placeholder="請輸入 5 位數字" maxlength="5" pattern="\\d{5}" required style="width:160px;padding:8px 10px;border:1px solid #fde68a;border-radius:6px;font-size:14px;background:#fff;" oninput="document.getElementById('payBtn').disabled = this.value.length !== 5 || !/^\d{5}$/.test(this.value)">
       </div>
-      <button type="submit" class="btn btn-success" style="font-size:14px;">&#x2705; 完成匯款</button>
+      <button type="submit" id="payBtn" class="btn btn-success" disabled style="font-size:14px;">&#x2705; 完成匯款</button>
     </form>
   </div>
   <% } %>
@@ -85,7 +85,7 @@
         </thead>
         <tbody>
           <% items.forEach(function(item) { %>
-          <% var subtotal = item.unit_price * item.quantity; sum += subtotal; %>
+          <% var subtotal = item.unit_price * item.quantity; %>
           <tr>
             <td style="display:flex;align-items:center;gap:8px;"><% if (item.image_url) { %><img src="<%= item.image_url %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid var(--border);"><% } %><strong><%= item.name %></strong></td>
             <td class="text-muted" style="font-size:13px;"><% var sz = item.product_size; var cl = item.product_color; %><%= (sz ? sz : '') %><%= (sz && cl ? ' / ' : '') %><%= (cl ? cl : '') %><%= (!sz && !cl ? '-' : '') %></td>
@@ -96,13 +96,7 @@
           </tr>
           <% }); %>
         </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="4"></td>
-            <td style="font-weight:600;font-size:16px;">總計</td>
-            <td style="font-weight:700;font-size:18px;color:var(--danger);">$<%= Number(sum).toLocaleString() %></td>
-          </tr>
-        </tfoot>
+
       </table>
     </div>
   </div>

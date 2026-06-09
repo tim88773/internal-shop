@@ -72,7 +72,7 @@ router.post('/cart/add', reqAuth, (req, res) => {
   var selColor = req.body.color || '';
   if (ex) { ex.qty += qty; } else { req.session._cart.push({ productId: pid, qty: qty, selectedSize: selSize, selectedColor: selColor }); }
   req.flash('success', '已加入購物車！');
-  redirectBack();
+  res.redirect('/orders/cart');
 });
 
 router.post('/cart/update', reqAuth, (req, res) => {

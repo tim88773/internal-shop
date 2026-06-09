@@ -344,6 +344,10 @@
     }
 
     /* Search bar */
+    /* Payment methods */
+    .payment-methods {
+      display: flex; gap: 16px; flex-wrap: wrap;
+    }
     .search-bar {
       display: flex;
       gap: 8px;
@@ -523,6 +527,16 @@
       .search-bar input, .search-bar select { width: 100%; }
 
       /* Product card image height */
+      /* Payment methods - stack vertically on mobile */
+      .payment-methods { flex-direction: column; gap: 10px; }
+      .payment-methods label {
+        padding: 10px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 15px !important;
+        width: 100%;
+      }
       .product-card .body div[style*="height:160px"] { height: 200px !important; }
     }
 

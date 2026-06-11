@@ -3,8 +3,9 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 
-const DATA_DIR = path.join(__dirname, 'data');
-const DB_PATH = path.join(DATA_DIR, 'shop.db');
+// Allow DATA_DIR override via env var (for Railway Volumes or similar)
+var DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+var DB_PATH = path.join(DATA_DIR, 'shop.db');
 
 let db = null;
 

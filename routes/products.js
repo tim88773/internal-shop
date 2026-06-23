@@ -1,12 +1,23 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const path = require('path');
 const multer = require('multer');
+const fs = require('fs');
 const { getDB } = require('../db');
+
+// Upload directory: use DATA_DIR volume on Railway, local public/uploads otherwise
+var UPLOAD_DIR = process.env.DATA_DIR
+  ? path.join(process.env.DATA_DIR, 'uploads')
+  : path.join(__dirname, '..', 'public', 'uploads');
+
+// Ensure upload directory exists
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
 
 // Multer config for image uploads
 const storage = multer.diskStorage({
-  destination: path.join(__dirname, '..', 'public', 'uploads'),
+  destination: UPLOAD_DIR,
   filename: function(req, file, cb) {
     const ext = path.extname(file.originalname) || '.jpg';
     cb(null, Date.now() + '-' + require('crypto').randomBytes(6).toString('hex') + ext);

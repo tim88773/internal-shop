@@ -1,18 +1,20 @@
 version = 1
 
 [railway]
-  # ===========================================
-  #  Railway Volume: shop-data
-  #  Mount the volume at /data so the database
-  #  survives deploys.
+  # ============================================================
+  #  Railway Volumes — 確保資料在程式更新後不會消失
   #
-  #  To create the volume:
-  #   1. Go to Railway Dashboard > your-project
-  #   2. Click "Volumes" in the sidebar
-  #   3. Create a volume named "shop-data"
-  #      with mount path "/data"
-  #   4. Set env var DATA_DIR=/data in your
-  #      service settings
-  #   5. Redeploy
-  # ===========================================
+  #  部署前需在 Railway Dashboard 建立 Volume：
+  #    1. 進入 Railway Dashboard > 選擇此專案
+  #    2. 左側點選 "Volumes"
+  #    3. 建立一個名為 "shop-data" 的 Volume
+  #       Mount Path 設為 "/data"
+  #    4. 在 Service > Variables 設定環境變數：
+  #       DATA_DIR = /data
+  #    5. 重新部署
+  #
+  #  此 Volume 會保存：
+  #    - SQLite 資料庫 (shop.db)
+  #    - 商品上傳圖片 (uploads/)
+  # ============================================================
   volumes = [{ name = "shop-data", mount = "/data" }]

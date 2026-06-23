@@ -2,6 +2,7 @@ const express = require('express');
 const ejsLayouts = require('express-ejs-layouts');
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
 const { getDB } = require('./db');
 
 const app = express();
@@ -17,6 +18,14 @@ app.use(ejsLayouts);
 app.set('layout', 'layout');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// On Railway (DATA_DIR set), also serve uploaded images from the persistent volume
+if (process.env.DATA_DIR) {
+  var uploadsDir = path.join(process.env.DATA_DIR, 'uploads');
+  if (fs.existsSync(uploadsDir)) {
+    app.use('/uploads', express.static(uploadsDir));
+  }
+}
 
 
 // Simple session middleware (no express-session, no async issues)

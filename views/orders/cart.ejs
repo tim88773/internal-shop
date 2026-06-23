@@ -7,8 +7,8 @@
   <% if (items.length === 0) { %>
     <div class="empty-state">
       <div class="icon">&#x1F6D2;</div>
-      <p>購物車是空的</p>
-      <a href="/products" class="btn btn-primary mt-4">去看看商品</a>
+      <p>購物車還是空的</p>
+      <a href="/products" class="btn btn-primary mt-4">去購物吧</a>
     </div>
   <% } else { %>
     <div class="card">
@@ -17,7 +17,8 @@
           <thead>
             <tr>
               <th>商品</th>
-              <th>瑕疵說明</th>
+              <th>尺碼/顏色</th>
+              <th>缺陷原因</th>
               <th>單價</th>
               <th>數量</th>
               <th>小計</th>
@@ -53,15 +54,66 @@
 
       <div style="margin-top:16px;padding-top:16px;border-top:2px solid var(--border);">
         <div class="flex-between">
-          <span style="font-size:16px;font-weight:600;">總計</span>
+          <span style="font-size:16px;font-weight:600;">小計</span>
           <span style="font-size:24px;font-weight:700;color:var(--danger);">$<%= Number(total).toLocaleString() %></span>
         </div>
-        <form action="/orders/checkout" method="POST" style="margin-top:12px;">
+
+        <!-- Points section -->
+        <% if (userPoints > 0) { %>
+        <div id="pointsSection" style="margin-top:12px;padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">
+          <div class="flex-between">
+            <div>
+              <span style="font-size:14px;font-weight:600;">&#x1F4B3; 積點</span>
+              <span class="text-muted" style="font-size:13px;margin-left:8px;">您目前有 <strong style="color:var(--warning);"><%= Number(userPoints).toLocaleString() %></strong> 點</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <label for="use_points" style="font-size:13px;cursor:pointer;">使用積點</label>
+              <input type="number" id="use_points_input" name="use_points" form="checkoutForm" value="0" min="0" max="<%= Math.min(userPoints, total) %>" style="width:100px;padding:6px 8px;border:1px solid #fde68a;border-radius:4px;font-size:14px;" oninput="updatePointsDisplay()">
+              <span style="font-size:13px;color:var(--text-secondary);">點</span>
+            </div>
+          </div>
+          <div id="pointsDiscountRow" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid #fde68a;" class="flex-between">
+            <span style="font-size:14px;color:var(--success);font-weight:600;">- 積點抵扣</span>
+            <span id="pointsDiscountValue" style="font-size:14px;color:var(--success);font-weight:600;">$0</span>
+          </div>
+          <div class="flex-between" style="margin-top:6px;">
+            <span style="font-size:16px;font-weight:700;">實付金額</span>
+            <span id="finalAmount" style="font-size:20px;font-weight:700;color:var(--danger);">$<%= Number(total).toLocaleString() %></span>
+          </div>
+        </div>
+        <script>
+        function updatePointsDisplay() {
+          var inp = document.getElementById('use_points_input');
+          var pts = parseInt(inp.value) || 0;
+          var maxPts = Math.min(<%= Math.floor(Math.min(userPoints, total)) %>, <%= Math.floor(total) %>);
+          if (pts < 0) pts = 0;
+          if (pts > maxPts) pts = maxPts;
+          inp.value = pts;
+          var total = <%= total %>;
+          var discountRow = document.getElementById('pointsDiscountRow');
+          var discountVal = document.getElementById('pointsDiscountValue');
+          var finalAmt = document.getElementById('finalAmount');
+          if (pts > 0) {
+            discountRow.style.display = 'flex';
+            discountVal.textContent = '-$' + Number(pts).toLocaleString();
+          } else {
+            discountRow.style.display = 'none';
+          }
+          finalAmt.textContent = '$' + Number(total - pts).toLocaleString();
+        }
+        </script>
+        <% } else { %>
+        <div style="margin-top:8px;">
+          <span class="text-muted" style="font-size:13px;">&#x1F4B3; 積點：0 點 （下單購物即可積點）</span>
+        </div>
+        <% } %>
+
+        <form id="checkoutForm" action="/orders/checkout" method="POST" style="margin-top:12px;">
           <div class="form-group">
             <label style="font-weight:600;font-size:14px;color:var(--text);margin-bottom:8px;display:block;">付款方式 *</label>
             <div class="payment-methods">
               <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
-                <input type="radio" name="payment_method" value="transfer" required onchange="toggleTransferInfo()"> 匯款
+                <input type="radio" name="payment_method" value="transfer" required onchange="toggleTransferInfo()"> 彙款
               </label>
               <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
                 <input type="radio" name="payment_method" value="salary" required> 扣薪
@@ -72,8 +124,8 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="notes">備註（選填）</label>
-            <textarea id="notes" name="notes" placeholder="例如：放置位置、注意事項等" style="min-height:50px;"></textarea>
+            <label for="notes">備註或特殊要求</label>
+            <textarea id="notes" name="notes" placeholder="如有特殊要求請註明在此處" style="min-height:50px;"></textarea>
           </div>
           <button type="submit" class="btn btn-success btn-block" style="font-size:16px;padding:12px;">&#x1F4E6; 確認下單</button>
         </form>

@@ -1,17 +1,10 @@
 <div class="container">
   <div class="flex-between mb-4">
     <h1 style="font-size:22px;font-weight:700;">&#x270F; 編輯會員</h1>
-    <a href="/members" class="btn btn-outline">回會員列表</a>
+    <a href="/members" class="btn btn-outline">返回列表</a>
   </div>
 
   <div class="card" style="max-width:500px;margin:0 auto;">
-    <% if (typeof success !== 'undefined' && success && success.length) { %>
-      <% success.forEach(function(msg) { %><div class="flash flash-success">&#10003; <%- msg %></div><% }); %>
-    <% } %>
-    <% if (typeof error !== 'undefined' && error && error.length) { %>
-      <% error.forEach(function(msg) { %><div class="flash flash-error">&#9888; <%- msg %></div><% }); %>
-    <% } %>
-
     <form action="/members/<%= member.id %>/edit" method="POST">
       <div class="form-group">
         <label for="display_name">顯示名稱</label>
@@ -22,17 +15,38 @@
         <input type="email" id="email" name="email" value="<%= member.email || '' %>">
       </div>
       <div class="form-group">
-        <label for="store">隸屬門市</label>
-        <input type="text" id="store" name="store" value="<%= member.store || '' %>" placeholder="例如：台北門市">
+        <label for="store">所屬門市</label>
+        <input type="text" id="store" name="store" value="<%= member.store || '' %>" placeholder="如：台北門市">
+      </div>
+
+      <!-- Points info display -->
+      <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
+      <div style="font-size:14px;">
+        <div class="flex-between" style="margin-bottom:6px;">
+          <span class="text-muted">目前積點</span>
+          <span style="font-weight:600;color:var(--warning);"><%= Number(member.points || 0).toLocaleString() %> 點</span>
+        </div>
+        <div class="flex-between" style="margin-bottom:6px;">
+          <span class="text-muted">累積獲得積點</span>
+          <span><%= Number(member.points_total_earned || 0).toLocaleString() %> 點</span>
+        </div>
+        <div class="flex-between">
+          <span class="text-muted">累積使用積點</span>
+          <span><%= Number(member.points_total_spent || 0).toLocaleString() %> 點</span>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:12px;">
+        <a href="/members/<%= member.id %>/points" class="btn btn-outline btn-sm">點數異動</a>
+        <a href="/members/<%= member.id %>/point-history" class="btn btn-outline btn-sm">查看歷程</a>
       </div>
 
       <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
 
-      <p class="text-muted" style="font-size:13px;margin-bottom:12px;">如不修改密碼請留空</p>
+      <p class="text-muted" style="font-size:13px;margin-bottom:12px;">如需更改密碼請填寫以下欄位</p>
       <div class="form-row">
         <div class="form-group">
           <label for="password">新密碼</label>
-          <input type="password" id="password" name="password" placeholder="留空則不變" minlength="4">
+          <input type="password" id="password" name="password" placeholder="留空則不修改" minlength="4">
         </div>
         <div class="form-group">
           <label for="confirm_password">確認新密碼</label>
@@ -40,7 +54,7 @@
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary btn-block">&#x1F504; 儲存變更</button>
+      <button type="submit" class="btn btn-primary btn-block">&#x1F504; 更新資料</button>
     </form>
   </div>
 </div>

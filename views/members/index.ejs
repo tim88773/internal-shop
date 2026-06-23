@@ -12,9 +12,12 @@
             <th>帳號</th>
             <th>顯示名稱</th>
             <th>Email</th>
-            <th>隸屬門市</th>
+            <th>所屬門市</th>
+            <th>目前積點</th>
+            <th>累積獲得</th>
+            <th>累積使用</th>
             <th>權限</th>
-            <th>註冊時間</th>
+            <th>建立時間</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -26,9 +29,18 @@
             <td><strong><%= m.display_name %></strong></td>
             <td class="text-muted"><%= m.email || '-' %></td>
             <td><%= m.store || '-' %></td>
+            <td><strong style="color:var(--warning);"><%= Number(m.points || 0).toLocaleString() %></strong></td>
+            <td class="text-muted"><%= Number(m.points_total_earned || 0).toLocaleString() %></td>
+            <td class="text-muted"><%= Number(m.points_total_spent || 0).toLocaleString() %></td>
             <td><span class="status <%= m.role === 'admin' ? 'status-accepted' : 'status-pending' %>"><%= m.role === 'admin' ? '管理員' : '一般' %></span></td>
             <td class="text-muted"><%= new Date(m.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Taipei' }) %></td>
-            <td><a href="/members/<%= m.id %>/edit" class="btn btn-outline btn-sm">編輯</a></td>
+            <td>
+              <div class="actions">
+                <a href="/members/<%= m.id %>/edit" class="btn btn-outline btn-sm">編輯</a>
+                <a href="/members/<%= m.id %>/points" class="btn btn-outline btn-sm">點數異動</a>
+                <a href="/members/<%= m.id %>/point-history" class="btn btn-outline btn-sm">歷程</a>
+              </div>
+            </td>
           </tr>
           <% }); %>
         </tbody>

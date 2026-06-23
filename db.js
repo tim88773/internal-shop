@@ -1,4 +1,4 @@
-﻿const Database = require('better-sqlite3');
+const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
@@ -122,9 +122,33 @@ function getDB() {
 
   if (ordCols.indexOf('updated_at') === -1) db.exec("ALTER TABLE orders ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP");
 
-  // Add store columns
+  // Points columns on orders
+  if (ordCols.indexOf('points_used') === -1) db.exec("ALTER TABLE orders ADD COLUMN points_used INTEGER NOT NULL DEFAULT 0");
+  if (ordCols.indexOf('points_earned') === -1) db.exec("ALTER TABLE orders ADD COLUMN points_earned INTEGER NOT NULL DEFAULT 0");
+
+  // Points columns on employees
   var empCols = db.prepare("PRAGMA table_info(employees)").all().map(function(c) { return c.name; });
   if (empCols.indexOf('store') === -1) db.exec("ALTER TABLE employees ADD COLUMN store TEXT DEFAULT ''");
+  if (empCols.indexOf('points') === -1) db.exec("ALTER TABLE employees ADD COLUMN points INTEGER NOT NULL DEFAULT 0");
+  if (empCols.indexOf('points_total_earned') === -1) db.exec("ALTER TABLE employees ADD COLUMN points_total_earned INTEGER NOT NULL DEFAULT 0");
+  if (empCols.indexOf('points_total_spent') === -1) db.exec("ALTER TABLE employees ADD COLUMN points_total_spent INTEGER NOT NULL DEFAULT 0");
+
+  // Point transactions table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS point_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL,
+      points INTEGER NOT NULL,
+      balance_after INTEGER NOT NULL,
+      type TEXT NOT NULL DEFAULT 'earn',
+      reference_type TEXT DEFAULT '',
+      reference_id INTEGER DEFAULT 0,
+      note TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (employee_id) REFERENCES employees(id)
+    )
+  `);
+
   var prodCols2 = db.prepare("PRAGMA table_info(products)").all().map(function(c) { return c.name; });
   if (prodCols2.indexOf('store') === -1) db.exec("ALTER TABLE products ADD COLUMN store TEXT DEFAULT ''");
   // Default admin account

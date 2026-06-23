@@ -1,0 +1,79 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F4C3; 點數異動歷程 - <%= member.display_name %></h1>
+    <div>
+      <a href="/members/<%= member.id %>/points" class="btn btn-outline btn-sm">點數異動</a>
+      <a href="/members" class="btn btn-outline btn-sm">返回會員列表</a>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:700px;margin:0 auto;">
+    <div class="flex-between mb-2">
+      <div>
+        <span style="font-size:14px;font-weight:600;"><%= member.display_name %></span>
+        <span class="text-muted" style="margin-left:8px;font-size:13px;">
+          目前積點：<strong style="color:var(--warning);"><%= Number(member.points || 0).toLocaleString() %></strong> 點 |
+          累積獲得：<%= Number(member.points_total_earned || 0).toLocaleString() %> |
+          累積使用：<%= Number(member.points_total_spent || 0).toLocaleString() %>
+        </span>
+      </div>
+    </div>
+
+    <% if (transactions.length === 0) { %>
+      <div class="empty-state">
+        <p>尚無積點異動紀錄</p>
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>類型</th>
+              <th>異動點數</th>
+              <th>餘額</th>
+              <th>說明</th>
+              <th>相關單號</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% transactions.forEach(function(t) { %>
+            <tr>
+              <td class="text-muted" style="font-size:12px;"><%= new Date(t.created_at).toLocaleString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Taipei' }) %></td>
+              <td>
+                <% if (t.type === 'earn') { %>
+                  <span style="color:var(--primary);font-weight:600;">購物獲得</span>
+                <% } else if (t.type === 'spend') { %>
+                  <span style="color:var(--success);font-weight:600;">購物抵扣</span>
+                <% } else if (t.type === 'admin_add') { %>
+                  <span style="color:var(--primary);font-weight:600;">管理員給點</span>
+                <% } else if (t.type === 'admin_deduct') { %>
+                  <span style="color:var(--danger);font-weight:600;">管理員扣點</span>
+                <% } else { %>
+                  <span><%= t.type %></span>
+                <% } %>
+              </td>
+              <td style="font-weight:600;">
+                <% if (t.points > 0) { %>
+                  <span style="color:var(--primary);">+<%= Number(t.points).toLocaleString() %></span>
+                <% } else { %>
+                  <span style="color:var(--danger);"><%= Number(t.points).toLocaleString() %></span>
+                <% } %>
+              </td>
+              <td><%= Number(t.balance_after).toLocaleString() %></td>
+              <td class="text-muted" style="font-size:13px;"><%= t.note || '' %></td>
+              <td>
+                <% if (t.reference_type === 'order') { %>
+                  <a href="/orders/<%= t.reference_id %>">#<%= t.reference_id %></a>
+                <% } else { %>
+                  -
+                <% } %>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>

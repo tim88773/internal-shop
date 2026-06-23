@@ -1,0 +1,49 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F4B3; 點數異動 - <%= member.display_name %></h1>
+    <a href="/members" class="btn btn-outline">返回會員列表</a>
+  </div>
+
+  <div class="card" style="max-width:500px;margin:0 auto;">
+    <div style="text-align:center;padding:16px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;margin-bottom:20px;">
+      <div class="text-muted" style="font-size:13px;">目前積點餘額</div>
+      <div style="font-size:36px;font-weight:700;color:var(--warning);"><%= Number(member.points || 0).toLocaleString() %></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
+
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:16px;">給點</h2>
+    <form action="/members/<%= member.id %>/points" method="POST" style="margin-bottom:24px;">
+      <input type="hidden" name="action" value="add">
+      <div class="form-group">
+        <label for="add_points">給點數</label>
+        <input type="number" id="add_points" name="points" min="1" required placeholder="請輸入正整數">
+      </div>
+      <div class="form-group">
+        <label for="add_note">備註</label>
+        <input type="text" id="add_note" name="note" placeholder="如：生日禮金、活動贈點等">
+      </div>
+      <button type="submit" class="btn btn-success btn-block">&#x2795; 給予積點</button>
+    </form>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
+
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:16px;">扣點</h2>
+    <form action="/members/<%= member.id %>/points" method="POST">
+      <input type="hidden" name="action" value="deduct">
+      <div class="form-group">
+        <label for="deduct_points">扣點數（不得超過目前餘額 <%= member.points %> 點）</label>
+        <input type="number" id="deduct_points" name="points" min="1" max="<%= member.points || 0 %>" required placeholder="請輸入正整數">
+      </div>
+      <div class="form-group">
+        <label for="deduct_note">備註</label>
+        <input type="text" id="deduct_note" name="note" placeholder="如：訂單異常扣回、活動調整等">
+      </div>
+      <button type="submit" class="btn btn-danger btn-block">&#x2796; 扣除積點</button>
+    </form>
+
+    <div style="text-align:center;margin-top:20px;">
+      <a href="/members/<%= member.id %>/point-history" class="btn btn-outline btn-sm">查看點數異動歷程</a>
+    </div>
+  </div>
+</div>

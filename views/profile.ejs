@@ -1,17 +1,11 @@
 <div class="container">
   <div class="flex-between mb-4">
     <h1 style="font-size:22px;font-weight:700;">&#x1F464; 會員資料</h1>
-    <a href="/dashboard" class="btn btn-outline">回儀表板</a>
+    <a href="/dashboard" class="btn btn-outline">返回儀表板</a>
   </div>
 
+  <!-- Profile Info Card -->
   <div class="card" style="max-width:500px;margin:0 auto;">
-    <% if (typeof success !== 'undefined' && success && success.length) { %>
-      <% success.forEach(function(msg) { %><div class="flash flash-success">&#10003; <%- msg %></div><% }); %>
-    <% } %>
-    <% if (typeof error !== 'undefined' && error && error.length) { %>
-      <% error.forEach(function(msg) { %><div class="flash flash-error">&#9888; <%- msg %></div><% }); %>
-    <% } %>
-
     <form action="/profile" method="POST">
       <div class="form-group">
         <label for="display_name">顯示名稱 *</label>
@@ -22,17 +16,17 @@
         <input type="email" id="email" name="email" value="<%= user.email || '' %>">
       </div>
       <div class="form-group">
-        <label for="store">隸屬門市</label>
-        <input type="text" id="store" name="store" value="<%= user.store || '' %>" placeholder="例如：台北門市">
+        <label for="store">所屬門市</label>
+        <input type="text" id="store" name="store" value="<%= user.store || '' %>" placeholder="如：台北門市">
       </div>
 
       <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
 
-      <p class="text-muted" style="font-size:13px;margin-bottom:12px;">如不修改密碼請留空</p>
+      <p class="text-muted" style="font-size:13px;margin-bottom:12px;">如需更改密碼請填寫以下欄位</p>
       <div class="form-row">
         <div class="form-group">
           <label for="password">新密碼</label>
-          <input type="password" id="password" name="password" placeholder="留空則不變" minlength="4">
+          <input type="password" id="password" name="password" placeholder="留空則不修改" minlength="4">
         </div>
         <div class="form-group">
           <label for="confirm_password">確認新密碼</label>
@@ -40,7 +34,90 @@
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary btn-block">&#x1F504; 儲存變更</button>
+      <button type="submit" class="btn btn-primary btn-block">&#x1F504; 更新資料</button>
     </form>
+  </div>
+
+  <!-- Points Card -->
+  <div class="card" style="max-width:500px;margin:16px auto;">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:12px;">&#x1F4B3; 我的積點</h2>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0;">
+      <div class="stat-card">
+        <div class="value" style="color:var(--warning);"><%= Number(user.points || 0).toLocaleString() %></div>
+        <div class="label">目前積點</div>
+      </div>
+      <div class="stat-card">
+        <div class="value"><%= Number(user.points_total_earned || 0).toLocaleString() %></div>
+        <div class="label">累積獲得</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" style="color:var(--success);"><%= Number(user.points_total_spent || 0).toLocaleString() %></div>
+        <div class="label">累積使用</div>
+      </div>
+    </div>
+    <div class="text-muted" style="font-size:13px;margin-top:8px;text-align:center;">
+      1 點 = $1，可於購物時抵扣金額
+    </div>
+    <div style="text-align:center;margin-top:12px;">
+      <a href="/profile/point-history" class="btn btn-outline btn-sm">查看積點異動歷程</a>
+    </div>
+  </div>
+
+  <!-- Consumption Summary Card -->
+  <div class="card" style="max-width:500px;margin:16px auto;">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:12px;">&#x1F4CA; 消費紀錄</h2>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0;">
+      <div class="stat-card">
+        <div class="value"><%= Number(orderStats.order_count).toLocaleString() %></div>
+        <div class="label">訂單數</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" style="color:var(--danger);">$<%= Number(orderStats.total_spent - orderStats.total_points_used).toLocaleString() %></div>
+        <div class="label">實際消費</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" style="color:var(--primary);">$<%= Number(orderStats.total_spent).toLocaleString() %></div>
+        <div class="label">累積消費</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Orders Card -->
+  <div class="card" style="max-width:500px;margin:16px auto;">
+    <div class="flex-between">
+      <h2 style="font-size:18px;font-weight:700;">&#x1F4CB; 近期訂單</h2>
+      <a href="/orders/my" class="btn btn-outline btn-sm">查看全部</a>
+    </div>
+    <% if (recentOrders.length === 0) { %>
+      <div class="empty-state" style="padding:24px;">
+        <p>尚無訂單紀錄</p>
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>訂單</th>
+              <th>日期</th>
+              <th>金額</th>
+              <th>積點</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recentOrders.forEach(function(o) { %>
+            <% var statusLabels = { 'pending':'待處理', 'accepted':'已接受', 'shipped':'已出貨', 'delivered':'已送達', 'cancelled':'已取消' }; %>
+            <tr>
+              <td><a href="/orders/<%= o.id %>">#<%= o.id %></a></td>
+              <td class="text-muted"><%= new Date(o.created_at).toLocaleDateString('zh-TW', { month:'2-digit', day:'2-digit' }) %></td>
+              <td>$<%= Number(o.total_amount).toLocaleString() %></td>
+              <td style="font-size:12px;"><% if (o.points_used > 0) { %><span style="color:var(--success);">-<%= o.points_used %></span> <% } %><% if (o.points_earned > 0) { %><span style="color:var(--primary);">+<%= o.points_earned %></span><% } %><% if (!o.points_used && !o.points_earned) { %>-<% } %></td>
+              <td><span class="status status-<%= o.status %>"><%= statusLabels[o.status] || o.status %></span></td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
   </div>
 </div>

@@ -1,7 +1,7 @@
 <div class="container">
   <div class="flex-between mb-4">
     <h1 style="font-size:22px;font-weight:700;">&#x270F; 編輯商品</h1>
-    <a href="/products/manage" class="btn btn-outline">回到管理</a>
+    <a href="/products/manage" class="btn btn-outline">返回管理</a>
   </div>
 
   <div class="card">
@@ -14,7 +14,7 @@
         <div class="form-group">
           <label for="category_id">分類</label>
           <select id="category_id" name="category_id">
-            <option value="">無分類</option>
+            <option value="">不分類</option>
             <% categories.forEach(function(c) { %>
               <option value="<%= c.id %>" <%= product.category_id == c.id ? 'selected' : '' %>><%= c.name %></option>
             <% }); %>
@@ -40,12 +40,12 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label for="sizes">尺寸（可複選，逗號分隔）</label>
-          <input type="text" id="sizes" name="sizes" value="<%= editSizes %>" placeholder="例如：S, M, L, XL">
+          <label for="sizes">尺寸（逗號分隔，例如：S, M, L, XL）</label>
+          <input type="text" id="sizes" name="sizes" value="<%= editSizes %>" placeholder="如：S, M, L, XL">
         </div>
         <div class="form-group">
-          <label for="colors">顏色（可複選，逗號分隔）</label>
-          <input type="text" id="colors" name="colors" value="<%= editColors %>" placeholder="例如：黑色, 白色, 藍色">
+          <label for="colors">顏色（逗號分隔，例如：黑色, 白色, 藍色）</label>
+          <input type="text" id="colors" name="colors" value="<%= editColors %>" placeholder="如：黑色, 白色, 藍色">
         </div>
       </div>
 
@@ -55,20 +55,29 @@
           <input type="number" id="quantity" name="quantity" min="0" value="<%= product.quantity %>">
         </div>
         <div class="form-group">
-          <label for="defect_reason">瑕疵說明</label>
+          <label for="defect_reason">缺陷原因</label>
           <input type="text" id="defect_reason" name="defect_reason" value="<%= product.defect_reason || '' %>">
         </div>
       </div>
 
       <div class="form-group">
-        <label for="store">商品隸屬門市</label>
-        <input type="text" id="store" name="store" value="<%= product.store || '' %>" placeholder="例如：台北門市（選填）">
+        <label for="store">商品所屬門市</label>
+        <input type="text" id="store" name="store" value="<%= product.store || '' %>" placeholder="如：台北門市，留空則不限門市">
+      </div>
+
+      <div class="form-check mb-4">
+        <input type="checkbox" id="allow_points_discount" name="allow_points_discount" value="1" <%= product.allow_points_discount ? 'checked' : '' %>>
+        <label for="allow_points_discount" style="margin:0;">開放使用積點折抵</label>
+      </div>
+      <div class="form-check mb-4">
+        <input type="checkbox" id="earn_points" name="earn_points" value="1" <%= product.earn_points ? 'checked' : '' %>>
+        <label for="earn_points" style="margin:0;">購買可獲得積點</label>
       </div>
 
       <div class="form-group">
         <label for="cover">封面圖片</label>
         <input type="file" id="cover" name="cover" accept="image/jpeg,image/png,image/gif,image/webp">
-        <div class="text-muted" style="font-size:12px;margin-top:4px;">顯示在商品列表的封面照</div>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">留空則保留目前封面圖片</div>
         <% if (product.image_url) { %>
           <div style="margin-top:8px;">
             <img src="<%= product.image_url %>" alt="封面" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
@@ -78,26 +87,26 @@
       </div>
 
       <div class="form-group">
-        <label for="gallery">商品照片（可多張）</label>
+        <label for="gallery">商品圖片（可多選）</label>
         <input type="file" id="gallery" name="gallery" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
-        <div class="text-muted" style="font-size:12px;margin-top:4px;">上傳新照片將取代全部舊照片</div>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">上傳新圖片會取代全部舊圖片</div>
         <% if (images && images.length > 0) { %>
           <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
             <% images.forEach(function(img) { %>
               <img src="<%= img.image_url %>" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid var(--border);">
             <% }); %>
           </div>
-          <div class="text-muted" style="font-size:12px;margin-top:4px;">目前 <%= images.length %> 張照片</div>
+          <div class="text-muted" style="font-size:12px;margin-top:4px;">目前 <%= images.length %> 張圖片</div>
         <% } %>
       </div>
 
       <div class="form-check mb-4">
         <input type="checkbox" id="is_active" name="is_active" value="1" <%= product.is_active ? 'checked' : '' %>>
-        <label for="is_active" style="margin:0;">上架中（取消勾選即下架）</label>
+        <label for="is_active" style="margin:0;">上架狀態（取消勾選則隱藏商品）</label>
       </div>
 
       <div class="form-group">
-        <button type="submit" class="btn btn-primary">&#x1F504; 儲存變更</button>
+        <button type="submit" class="btn btn-primary">&#x1F504; 更新商品</button>
         <a href="/products/manage" class="btn btn-outline">取消</a>
       </div>
     </form>

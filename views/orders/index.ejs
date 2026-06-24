@@ -3,9 +3,9 @@
     <h1 style="font-size:22px;font-weight:700;">&#x1F4CB; <%= typeof myOrders !== 'undefined' && myOrders ? '我的訂單' : '所有訂單' %></h1>
     <% if (typeof myOrders !== 'undefined' && myOrders) { %>
       <a href="/orders/export" class="btn btn-primary btn-sm">&#x1F4E5; 匯出 Excel</a>
-      <a href="/orders" class="btn btn-outline">查看所有訂單</a>
+      <a href="/orders" class="btn btn-outline">看所有訂單</a>
     <% } else { %>
-      <a href="/orders/export" class="btn btn-primary btn-sm">📥 匯出 Excel</a>
+      <a href="/orders/export" class="btn btn-primary btn-sm">匯出 Excel</a>
       <a href="/orders/my" class="btn btn-outline">我的訂單</a>
     <% } %>
   </div>
@@ -14,9 +14,10 @@
   <form id="batchForm" action="/orders/batch-status" method="POST" class="flex-between mb-4" style="padding:12px 16px;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-size:13px;font-weight:600;color:var(--text-secondary);">批次操作：</span>
-      <button type="submit" name="action" value="accept" class="btn btn-primary btn-sm" onclick="return confirmBatch('確認')">&#x2705; 批次確認</button>
+      <button type="submit" name="action" value="accept" class="btn btn-primary btn-sm" onclick="return confirmBatch('確認接受')">&#x2705; 批次確認接受</button>
       <button type="submit" name="action" value="ship" class="btn btn-primary btn-sm" onclick="return confirmBatch('出貨')">&#x1F69A; 批次出貨</button>
       <button type="submit" name="action" value="complete" class="btn btn-primary btn-sm" onclick="return confirmBatch('完成')">&#x1F3C1; 批次完成</button>
+      <button type="submit" name="action" value="cancel" class="btn btn-danger btn-sm" onclick="return confirmBatch('取消')">&#x274C; 批次取消</button>
       <input type="hidden" id="batchIds" name="ids" value="">
     </div>
   </form>
@@ -24,9 +25,9 @@
   function confirmBatch(label) {
     var ids = [];
     document.querySelectorAll('.order-check:checked').forEach(function(cb) { ids.push(cb.value); });
-    if (ids.length === 0) { alert('請先勾選訂單'); return false; }
+    if (ids.length === 0) { alert('請選擇訂單'); return false; }
     document.getElementById('batchIds').value = JSON.stringify(ids);
-    return confirm('確定要批次' + label + ' ' + ids.length + ' 筆訂單？');
+    return confirm('確定要 ' + label + ' ' + ids.length + ' 筆訂單嗎？');
   }
   function toggleAll(src) {
     document.querySelectorAll('.order-check').forEach(function(cb) { cb.checked = src.checked; });
@@ -37,7 +38,7 @@
   <% if (orders.length === 0) { %>
     <div class="empty-state">
       <div class="icon">&#x1F4CB;</div>
-      <p>目前還沒有訂單記錄</p>
+      <p>目前沒有任何訂單</p>
       <a href="/products" class="btn btn-primary mt-4">去購物</a>
     </div>
   <% } else { %>
@@ -48,9 +49,9 @@
             <tr>
               <th style="width:30px;"><% if (currentUser && currentUser.role === "admin" && (!myOrders)) { %><input type="checkbox" onchange="toggleAll(this)"><% } %></th>
               <th>訂單編號</th>
-              <th>下單員工</th>
+              <th>下單人員</th>
               <th>品項</th>
-              <th>隸屬門市</th>
+              <th>所屬門市</th>
               <th>總金額</th>
               <th>狀態</th>
               <th>下單時間</th>
@@ -63,12 +64,12 @@
               <td><% if (currentUser && currentUser.role === "admin" && (!myOrders)) { %><input type="checkbox" class="order-check" value="<%= o.id %>"><% } %></td>
               <td><strong>#<%= o.id %></strong></td>
               <td><%= o.display_name %></td>
-              <td><%= o.items_count %> 件</td>
+              <td><%= o.items_count %> 項</td>
               <td><%= o.store || '-' %></td>
               <td style="font-weight:600;">$<%= Number(o.total_amount || 0).toLocaleString() %></td>
               <td><span class="status status-<%= o.status %>"><%= statusLabel(o.status) %></span></td>
               <td class="text-muted"><%= new Date(o.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Taipei' }) %></td>
-              <td><a href="/orders/<%= o.id %>" class="btn btn-outline btn-sm">詳細</a></td>
+              <td><a href="/orders/<%= o.id %>" class="btn btn-outline btn-sm">明細</a></td>
             </tr>
             <% }); %>
           </tbody>

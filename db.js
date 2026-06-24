@@ -149,8 +149,31 @@ function getDB() {
     )
   `);
 
+  // Cart items table (per-user cart, stored in DB)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cart_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      selected_size TEXT DEFAULT '',
+      selected_color TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (employee_id) REFERENCES employees(id),
+      FOREIGN KEY (product_id) REFERENCES products(id),
+      UNIQUE(employee_id, product_id, selected_size, selected_color)
+    )
+  `);
+
+  // Products points columns
+  if (productCols.indexOf('allow_points_discount') === -1) db.exec("ALTER TABLE products ADD COLUMN allow_points_discount INTEGER NOT NULL DEFAULT 1");
+  if (productCols.indexOf('earn_points') === -1) db.exec("ALTER TABLE products ADD COLUMN earn_points INTEGER NOT NULL DEFAULT 1");
+
   var prodCols2 = db.prepare("PRAGMA table_info(products)").all().map(function(c) { return c.name; });
   if (prodCols2.indexOf('store') === -1) db.exec("ALTER TABLE products ADD COLUMN store TEXT DEFAULT ''");
+  if (prodCols2.indexOf('allow_points_discount') === -1) db.exec("ALTER TABLE products ADD COLUMN allow_points_discount INTEGER NOT NULL DEFAULT 1");
+  if (prodCols2.indexOf('earn_points') === -1) db.exec("ALTER TABLE products ADD COLUMN earn_points INTEGER NOT NULL DEFAULT 1");
+
   // Default admin account
   var row = db.prepare("SELECT id FROM employees WHERE username = ?").get('admin');
   if (!row) {

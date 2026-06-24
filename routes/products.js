@@ -139,19 +139,27 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
   if (req.files && req.files.cover && req.files.cover.length > 0) {
     coverUrl = '/uploads/' + req.files.cover[0].filename;
   } else if (req.files && req.files.gallery && req.files.gallery.length > 0) {
-    // Use first gallery image as cover if no explicit cover
     coverUrl = '/uploads/' + req.files.gallery[0].filename;
   }
 
   var storeVal = req.body.store || '';
-  var insertResult = db.prepare('INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, store, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+  var sizesArr = (req.body.sizes || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
+  var colorsArr = (req.body.colors || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
+  var allowPts = req.body.allow_points_discount ? 1 : 0;
+  var earnPts = req.body.earn_points ? 1 : 0;
+
+  var insertResult = db.prepare('INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, store, image_url, sizes, colors, allow_points_discount, earn_points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
     name, description || '', parseFloat(price) || 0,
     original_price ? parseFloat(original_price) : null,
     category_id ? Number(category_id) : null,
     parseInt(quantity) || 0,
     defect_reason || '',
     storeVal,
-    coverUrl || null
+    coverUrl || null,
+    JSON.stringify(sizesArr),
+    JSON.stringify(colorsArr),
+    allowPts,
+    earnPts
   );
 
   var pid = Number(insertResult.lastInsertRowid);
@@ -159,7 +167,6 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
   // Save gallery images
   if (req.files && req.files.gallery) {
     var galleryFiles = req.files.gallery;
-    // Skip first if it was used as cover
     var startIdx = (!req.files.cover || req.files.cover.length === 0) && galleryFiles.length > 0 ? 1 : 0;
     for (var i = startIdx; i < galleryFiles.length; i++) {
       var url = '/uploads/' + galleryFiles[i].filename;
@@ -195,14 +202,12 @@ router.get('/:id', requireAuth, (req, res) => {
     'SELECT * FROM products WHERE is_active = 1 AND id != ? ORDER BY created_at DESC LIMIT 4'
   ).all(pid);
 
-  // Check if in cart
+  // Check if in cart (from DB cart)
   var inCart = 0;
-  if (req.session._cart) {
-    var found = req.session._cart.find(function(c) { return c.productId === pid; });
-    if (found) inCart = found.qty;
-  }
+  var cartItem = db.prepare('SELECT quantity FROM cart_items WHERE employee_id = ? AND product_id = ?').get(req.session.user.id, pid);
+  if (cartItem) inCart = cartItem.quantity;
 
-  // Parse sizes and colors for the detail view
+  // Parse sizes and colors
   var productSizes = []; var productColors = [];
   try { productSizes = JSON.parse(product.sizes || '[]'); } catch(e) {}
   try { productColors = JSON.parse(product.colors || '[]'); } catch(e) {}
@@ -237,7 +242,6 @@ router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
   const db = getDB();
   var pid = Number(req.params.id);
 
-  // Build dynamic UPDATE query
   var updates = [];
   var params = [];
 
@@ -254,6 +258,8 @@ router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
   var colorsArr2 = (req.body.colors || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
   updates.push('sizes = ?'); params.push(JSON.stringify(sizesArr2));
   updates.push('colors = ?'); params.push(JSON.stringify(colorsArr2));
+  updates.push('allow_points_discount = ?'); params.push(req.body.allow_points_discount ? 1 : 0);
+  updates.push('earn_points = ?'); params.push(req.body.earn_points ? 1 : 0);
 
   // Handle cover image
   if (req.files && req.files.cover && req.files.cover.length > 0) {

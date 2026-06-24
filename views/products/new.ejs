@@ -1,7 +1,7 @@
 <div class="container">
   <div class="flex-between mb-4">
     <h1 style="font-size:22px;font-weight:700;">&#x2795; 新增商品</h1>
-    <a href="/products/manage" class="btn btn-outline">回到管理</a>
+    <a href="/products/manage" class="btn btn-outline">返回管理</a>
   </div>
 
   <div class="card">
@@ -9,12 +9,12 @@
       <div class="form-row">
         <div class="form-group">
           <label for="name">商品名稱 *</label>
-          <input type="text" id="name" name="name" placeholder="例如：瑕疵版無線滑鼠" required>
+          <input type="text" id="name" name="name" placeholder="請輸入商品名稱" required>
         </div>
         <div class="form-group">
           <label for="category_id">分類</label>
           <select id="category_id" name="category_id">
-            <option value="">無分類</option>
+            <option value="">不分類</option>
             <% categories.forEach(function(c) { %>
               <option value="<%= c.id %>"><%= c.name %></option>
             <% }); %>
@@ -24,7 +24,7 @@
 
       <div class="form-group">
         <label for="description">商品描述</label>
-        <textarea id="description" name="description" placeholder="描述商品規格、功能等資訊"></textarea>
+        <textarea id="description" name="description" placeholder="商品詳細說明內容"></textarea>
       </div>
 
       <div class="form-row">
@@ -34,18 +34,18 @@
         </div>
         <div class="form-group">
           <label for="original_price">原價（選填）</label>
-          <input type="number" id="original_price" name="original_price" step="1" min="0" placeholder="顯示劃掉的原價">
+          <input type="number" id="original_price" name="original_price" step="1" min="0" placeholder="顯示劃線價格">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label for="sizes">尺寸（可複選，逗號分隔）</label>
-          <input type="text" id="sizes" name="sizes" placeholder="例如：S, M, L, XL">
+          <label for="sizes">尺寸（逗號分隔，例如：S, M, L, XL）</label>
+          <input type="text" id="sizes" name="sizes" placeholder="如：S, M, L, XL">
         </div>
         <div class="form-group">
-          <label for="colors">顏色（可複選，逗號分隔）</label>
-          <input type="text" id="colors" name="colors" placeholder="例如：黑色, 白色, 藍色">
+          <label for="colors">顏色（逗號分隔，例如：黑色, 白色, 藍色）</label>
+          <input type="text" id="colors" name="colors" placeholder="如：黑色, 白色, 藍色">
         </div>
       </div>
 
@@ -55,30 +55,39 @@
           <input type="number" id="quantity" name="quantity" min="0" value="1">
         </div>
         <div class="form-group">
-          <label for="defect_reason">瑕疵說明</label>
-          <input type="text" id="defect_reason" name="defect_reason" placeholder="例如：外盒輕微磨損">
+          <label for="defect_reason">缺陷原因</label>
+          <input type="text" id="defect_reason" name="defect_reason" placeholder="如：包裝破損">
         </div>
       </div>
 
       <div class="form-group">
-        <label for="store">商品隸屬門市</label>
-        <input type="text" id="store" name="store" placeholder="例如：台北門市（選填）">
+        <label for="store">商品所屬門市</label>
+        <input type="text" id="store" name="store" placeholder="如：台北門市，留空則不限門市">
+      </div>
+
+      <div class="form-check mb-4">
+        <input type="checkbox" id="allow_points_discount" name="allow_points_discount" value="1" checked>
+        <label for="allow_points_discount" style="margin:0;">開放使用積點折抵</label>
+      </div>
+      <div class="form-check mb-4">
+        <input type="checkbox" id="earn_points" name="earn_points" value="1" checked>
+        <label for="earn_points" style="margin:0;">購買可獲得積點</label>
       </div>
 
       <div class="form-group">
         <label for="cover">封面圖片</label>
         <input type="file" id="cover" name="cover" accept="image/jpeg,image/png,image/gif,image/webp">
-        <div class="text-muted" style="font-size:12px;margin-top:4px;">建議尺寸 800x800，支援 JPG/PNG/GIF/WebP，最大 5MB</div>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">建議尺寸 800x800，僅接受 JPG/PNG/GIF/WebP，檔案上限 5MB</div>
       </div>
 
       <div class="form-group">
-        <label for="gallery">商品照片（可多張）</label>
+        <label for="gallery">商品圖片（可多選）</label>
         <input type="file" id="gallery" name="gallery" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
-        <div class="text-muted" style="font-size:12px;margin-top:4px;">按住 Ctrl 或 Cmd 可選擇多張</div>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">按住 Ctrl 或 Cmd 可多選</div>
       </div>
 
       <div class="form-group mt-4">
-        <button type="submit" class="btn btn-success">&#x1F4E6; 上架商品</button>
+        <button type="submit" class="btn btn-success">&#x1F4E6; 發布商品</button>
         <a href="/products/manage" class="btn btn-outline">取消</a>
       </div>
     </form>

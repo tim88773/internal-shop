@@ -35,10 +35,12 @@ router.get('/', requireAdmin, (req, res) => {
     variantMap[v.product_id].push(v);
   }
 
-  // Attach variants to each product and count
+  // Attach variants, sizes, colors to each product
   for (var j = 0; j < products.length; j++) {
     products[j].variants = variantMap[products[j].id] || [];
     products[j].variantCount = products[j].variants.length;
+    try { products[j].sizesArr = JSON.parse(products[j].sizes || '[]'); } catch(e) { products[j].sizesArr = []; }
+    try { products[j].colorsArr = JSON.parse(products[j].colors || '[]'); } catch(e) { products[j].colorsArr = []; }
   }
 
   // Filter by search
@@ -335,6 +337,141 @@ router.get('/export', requireAdmin, (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename="inventory_export.xlsx"');
 
   workbook.xlsx.write(res).then(function() { res.end(); });
+});
+
+
+// ---- Multer config for Excel upload ----
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const ExcelJS = require('exceljs');
+
+var excelStorage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    var dir = process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'uploads') : path.join(__dirname, '..', 'public', 'uploads');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: function(req, file, cb) {
+    cb(null, 'inv-import-' + Date.now() + '-' + require('crypto').randomBytes(4).toString('hex') + '.xlsx');
+  }
+});
+var uploadExcel = multer({
+  storage: excelStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: function(req, file, cb) {
+    var ext = path.extname(file.originalname).toLowerCase();
+    cb(null, ext === '.xlsx' || ext === '.xls');
+  }
+});
+
+// ---- Excel import template download ----
+router.get('/import-template', requireAdmin, function(req, res) {
+  var workbook = new ExcelJS.Workbook();
+  var sheet = workbook.addWorksheet('\u5eab\u5b58\u5c0e\u5165');
+
+  sheet.columns = [
+    { header: '\u6b3e\u5f0f\u865f\u78bc', key: 'style_code', width: 16 },
+    { header: '\u5c3a\u5bf8', key: 'size', width: 12 },
+    { header: '\u984f\u8272', key: 'color', width: 14 },
+    { header: '\u5eab\u5b58\u6578\u91cf', key: 'quantity', width: 12 },
+  ];
+
+  var headerRow = sheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC98686' } };
+  headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+  sheet.addRow({ style_code: 'TS-001', size: 'M', color: '\u9ed1\u8272', quantity: 15 });
+  sheet.addRow({ style_code: 'TS-001', size: 'L', color: '\u9ed1\u8272', quantity: 10 });
+  sheet.addRow({ style_code: 'TS-002', size: 'F', color: '\u767d\u8272', quantity: 20 });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="inventory_import_template.xlsx"');
+
+  workbook.xlsx.write(res).then(function() { res.end(); });
+});
+
+// ---- Excel file import ----
+router.post('/excel-import', requireAdmin, uploadExcel.single('excel_file'), function(req, res) {
+  if (!req.file) {
+    req.flash('error', '\u8acb\u9078\u64c7\u4e00\u500b Excel \u6a94\u6848');
+    return res.redirect('/inventory');
+  }
+
+  var db = getDB();
+  var filepath = req.file.path;
+  var success = 0;
+  var errors = [];
+
+  (async function() {
+    try {
+      var workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filepath);
+      var sheet = workbook.worksheets[0];
+      if (!sheet) { errors.push('Excel \u6a94\u6c92\u6709\u5de5\u4f5c\u7a3f'); return; }
+
+      var rowCount = sheet.rowCount;
+      for (var r = 2; r <= rowCount; r++) {
+        try {
+          var row = sheet.getRow(r);
+          var styleCode = String(row.getCell(1).value || '').trim();
+          var size = String(row.getCell(2).value || '').trim();
+          var color = String(row.getCell(3).value || '').trim();
+          var qty = parseInt(row.getCell(4).value) || 0;
+
+          if (!styleCode || !size || !color) { errors.push('\u884c ' + r + ': \u6b20\u7f3a\u5fc5\u586b\u6b04\u4f4d'); continue; }
+          if (qty < 0) qty = 0;
+
+          var product = db.prepare('SELECT id, sizes, colors FROM products WHERE style_code = ?').get(styleCode);
+          if (!product) { errors.push('\u884c ' + r + ': \u627e\u4e0d\u5230\u6b3e\u5f0f\u865f\u78bc\u300c' + styleCode + '\u300d'); continue; }
+
+          var existing = db.prepare('SELECT id FROM product_variants WHERE product_id = ? AND size = ? AND color = ?').get(product.id, size, color);
+          if (existing) {
+            db.raw.exec('UPDATE product_variants SET quantity = ? WHERE id = ?', [qty, existing.id]);
+          } else {
+            db.raw.exec('INSERT INTO product_variants (product_id, size, color, quantity) VALUES (?, ?, ?, ?)', [product.id, size, color, qty]);
+            var sizesArr = []; var colorsArr = [];
+            try { sizesArr = JSON.parse(product.sizes || '[]'); } catch(e) {}
+            try { colorsArr = JSON.parse(product.colors || '[]'); } catch(e) {}
+            var changed = false;
+            if (sizesArr.indexOf(size) === -1) { sizesArr.push(size); changed = true; }
+            if (colorsArr.indexOf(color) === -1) { colorsArr.push(color); changed = true; }
+            if (changed) {
+              db.raw.exec('UPDATE products SET sizes = ?, colors = ? WHERE id = ?', [JSON.stringify(sizesArr), JSON.stringify(colorsArr), product.id]);
+            }
+          }
+          success++;
+        } catch (e) {
+          errors.push('\u884c ' + r + ': ' + e.message);
+        }
+      }
+    } catch (err) {
+      errors.push('\u7121\u6cd5\u8b80\u53d6 Excel \u6a94\uff1a' + err.message);
+    }
+  })().then(function() {
+    try { fs.unlinkSync(filepath); } catch(e) {}
+
+    // Recalc all totals
+    var allProds = db.prepare('SELECT id FROM products').all();
+    for (var j = 0; j < allProds.length; j++) {
+      var total = db.prepare('SELECT COALESCE(SUM(quantity),0) as total FROM product_variants WHERE product_id = ?').get(allProds[j].id);
+      if (total.total >= 0) db.raw.exec('UPDATE products SET quantity = ? WHERE id = ?', [total.total, allProds[j].id]);
+    }
+
+    var msg = '\u5df2\u66f4\u65b0 ' + success + ' \u7b46\u5eab\u5b58';
+    if (errors.length > 0) {
+      msg += '\uff0c' + errors.length + ' \u7b46\u932f\u8aa4\uff1a' + errors.slice(0, 5).join('; ');
+      req.flash('error', msg);
+    } else {
+      req.flash('success', msg);
+    }
+    res.redirect('/inventory');
+  }).catch(function(err) {
+    try { fs.unlinkSync(filepath); } catch(e) {}
+    req.flash('error', '\u5c0e\u5165\u5931\u6557\uff1a' + err.message);
+    res.redirect('/inventory');
+  });
 });
 
 module.exports = router;

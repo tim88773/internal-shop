@@ -31,16 +31,20 @@
     <a href="/inventory/export" class="btn btn-outline btn-sm">📤 庫存導出 (Excel)</a>
   </div>
 
-  <!-- Batch Import Section -->
+  <!-- Excel Import Section -->
   <div id="batchImportSection" style="display:none;margin-bottom:16px;">
     <div class="card" style="padding:16px;">
-      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">批次庫存導入</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Excel 庫存導入</div>
       <p class="text-muted" style="font-size:12px;margin-bottom:8px;">
-        每行一筆，格式：款式號碼, 尺寸, 顏色, 數量<br>
-        範例：TS-001, M, 黑色, 15
+        上傳 Excel 檔案，格式要求：<br>
+        第一列 = 款式號碼、第二列 = 尺寸、第三列 = 顏色、第四列 = 庫存數量<br>
+        第一列為標題列，從第二行開始讀取資料。
       </p>
-      <form action="/inventory/batch-import" method="POST">
-        <textarea name="data" style="width:100%;min-height:120px;padding:10px;border:1px solid var(--border);border-radius:6px;font-family:monospace;font-size:13px;" placeholder="TS-001, M, 黑色, 15&#10;TS-001, L, 黑色, 10&#10;TS-002, F, 白色, 20"></textarea>
+      <div style="margin-bottom:8px;">
+        <a href="/inventory/import-template" class="btn btn-outline btn-sm">⬇ 下載範本檔</a>
+      </div>
+      <form action="/inventory/excel-import" method="POST" enctype="multipart/form-data">
+        <input type="file" name="excel_file" accept=".xlsx,.xls" required style="padding:8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
         <div style="margin-top:8px;">
           <button type="submit" class="btn btn-success btn-sm">📥 執行導入</button>
         </div>
@@ -136,11 +140,29 @@
               <input type="hidden" name="product_id" value="<%= p.id %>">
               <div>
                 <label style="font-size:11px;color:var(--text-secondary);display:block;">尺寸</label>
-                <input type="text" name="size" placeholder="如 M" required style="width:70px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
+                <select name="size" required style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;background:#fff;">
+                  <option value="">選擇</option>
+                  <% if (p.sizesArr && p.sizesArr.length > 0) { %>
+                    <% p.sizesArr.forEach(function(s) { %>
+                    <option value="<%= s %>"><%= s %></option>
+                    <% }); %>
+                  <% } else { %>
+                    <option value="-">-</option>
+                  <% } %>
+                </select>
               </div>
               <div>
                 <label style="font-size:11px;color:var(--text-secondary);display:block;">顏色</label>
-                <input type="text" name="color" placeholder="如 黑色" required style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
+                <select name="color" required style="width:90px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;background:#fff;">
+                  <option value="">選擇</option>
+                  <% if (p.colorsArr && p.colorsArr.length > 0) { %>
+                    <% p.colorsArr.forEach(function(c) { %>
+                    <option value="<%= c %>"><%= c %></option>
+                    <% }); %>
+                  <% } else { %>
+                    <option value="-">-</option>
+                  <% } %>
+                </select>
               </div>
               <div>
                 <label style="font-size:11px;color:var(--text-secondary);display:block;">數量</label>

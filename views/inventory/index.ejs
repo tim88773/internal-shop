@@ -76,7 +76,7 @@ TS-002, F, 白色, 20</pre>
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;cursor:pointer;" onclick="toggleVariants(<%= p.id %>)">
           <div style="display:flex;align-items:center;gap:12px;">
             <% if (p.image_url) { %>
-              <img src="<%= p.image_url %>" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
+              <img src="<%= p.image_url %>" onerror="this.style.display='none'" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
             <% } else { %>
               <div style="width:40px;height:40px;background:#f1f5f9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text-secondary);">&#x1F4E6;</div>
             <% } %>

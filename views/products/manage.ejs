@@ -34,7 +34,7 @@
             <td>#<%= p.id %></td>
             <td>
               <% if (p.image_url) { %>
-                <img src="<%= p.image_url %>" alt="<%= p.name %>" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--border);">
+                <img src="<%= p.image_url %>" onerror="this.style.display='none'" alt="<%= p.name %>" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--border);">
               <% } else { %>
                 <span class="text-muted">-</span>
               <% } %>

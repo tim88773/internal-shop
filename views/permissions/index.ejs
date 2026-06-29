@@ -1,0 +1,63 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F512; 权限管理</h1>
+  </div>
+
+  <div class="card">
+    <p class="text-muted mb-4" style="font-size:13px;line-height:1.6;">
+      设定每位员工的权限。管理员（admin）自动拥有所有权限，无需设定。<br>
+      每个模块可分别控制：新增、查看、编辑、删除四项操作。
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>员工</th>
+            <th>帐号</th>
+            <th>所属门市</th>
+            <th>角色</th>
+            <th>权限摘要</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% employees.forEach(function(emp) { %>
+          <tr>
+            <td><strong><%= emp.display_name %></strong></td>
+            <td><%= emp.username %></td>
+            <td><%= emp.store || '-' %></td>
+            <td>
+              <span class="status <%= emp.role === 'admin' ? 'status-accepted' : 'status-pending' %>">
+                <%= emp.role === 'admin' ? '管理员' : '一般员工' %>
+              </span>
+            </td>
+            <td>
+              <% if (emp.role === 'admin') { %>
+                <span style="color:var(--success);font-weight:600;">全部权限</span>
+              <% } else { %>
+                <% var ep = employeePermissions[emp.id] || {}; %>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <% modules.forEach(function(mod) { %>
+                    <% var hasRead = ep[mod.id] && ep[mod.id]['read']; %>
+                    <span style="font-size:11px;padding:1px 8px;border-radius:4px;background:<%= hasRead ? '#dcfce7' : '#f1f5f9' %>;color:<%= hasRead ? '#166534' : '#94a3b8' %>;">
+                      <%= mod.label %>
+                    </span>
+                  <% }); %>
+                </div>
+              <% } %>
+            </td>
+            <td>
+              <% if (emp.role !== 'admin') { %>
+                <a href="/permissions/<%= emp.id %>/edit" class="btn btn-outline btn-sm">编辑权限</a>
+              <% } else { %>
+                <span class="text-muted">-</span>
+              <% } %>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

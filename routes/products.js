@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const path = require('path');
 const multer = require('multer');
@@ -262,15 +262,71 @@ function processWorkbook(db, workbook, clearFirst, result) {
 function getCellStr(row, col) {
   if (!col) return '';
   var cell = row.getCell(col);
-  if (cell.value === null || cell.value === undefined) return '';
-  return String(cell.value).trim();
+  var val = cell.value;
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'object') {
+    if (val.richText) {
+      return val.richText.map(function(rt) { return rt.text || ''; }).join('').trim();
+    }
+    // Handle formula objects: { formula: '...', result: '...' }
+    if (val.result !== undefined && val.result !== null) {
+      return String(val.result).trim();
+    }
+    // Date or other object - try toString or fall back to empty
+    var str = val.toString();
+    if (str && str !== '[object Object]') return str.trim();
+    return '';
+  }
+  return String(val).trim();
 }
 
 function getCellRaw(row, col) {
   if (!col) return null;
-  return row.getCell(col).value;
+  var val = row.getCell(col).value;
+  if (typeof val === 'object' && val !== null && val.richText) {
+    return val.richText.map(function(rt) { return rt.text || ''; }).join('');
+  }
+  return val;
 }
 
+
+// ============================================
+//  Variant helpers
+// ============================================
+
+function getVariants(db, productId) {
+  return db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY size, color').all(productId);
+}
+
+function calcTotalVariantQuantity(db, productId) {
+  var row = db.prepare('SELECT COALESCE(SUM(quantity),0) as total FROM product_variants WHERE product_id = ?').get(productId);
+  return row ? row.total : 0;
+}
+
+function saveVariants(db, productId, variantsText) {
+  // Delete existing variants
+  db.raw.exec('DELETE FROM product_variants WHERE product_id = ?', [productId]);
+  // Parse each line: size, color, qty
+  var lines = (variantsText || '').split(String.fromCharCode(10,13).replace(/[^0-9A-Za-z\u4e00-\u9fff,\s]/g,String.fromCharCode(10))).filter(Boolean);
+  // Simpler approach: split by newline
+  var rows = variantsText.split(/\r?\n/).filter(Boolean);
+  var insertV = db.prepare('INSERT INTO product_variants (product_id, size, color, quantity) VALUES (?, ?, ?, ?)');
+  for (var i = 0; i < rows.length; i++) {
+    var parts = rows[i].split(',').map(function(s){return s.trim();});
+    if (parts.length >= 3) {
+      var sz = parts[0] || '';
+      var cl = parts[1] || '';
+      var qty = parseInt(parts[2]) || 0;
+      if (qty > 0) {
+        insertV.run(productId, sz, cl, qty);
+      }
+    }
+  }
+  // Update the product's global quantity to sum of variants
+  var total = calcTotalVariantQuantity(db, productId);
+  db.raw.exec('UPDATE products SET quantity = ? WHERE id = ?', [total, productId]);
+  return total;
+}
 // ============================================
 //  Regular routes
 // ============================================
@@ -350,7 +406,7 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
     name, description || '', parseFloat(price) || 0,
     original_price ? parseFloat(original_price) : null,
     category_id ? Number(category_id) : null,
-    parseInt(quantity) || 0,
+    0,
     defect_reason || '',
     storeVal,
     coverUrl || null,
@@ -361,6 +417,9 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
   );
 
   var pid = Number(insertResult.lastInsertRowid);
+
+  // Handle variants
+  saveVariants(db, pid, req.body.variants || '');
 
   if (req.files && req.files.gallery) {
     var galleryFiles = req.files.gallery;
@@ -415,7 +474,9 @@ router.get('/:id/edit', requireAdmin, (req, res) => {
   var pSizes = []; var pColors = [];
   try { pSizes = JSON.parse(product.sizes || '').join(', '); } catch(e) {}
   try { pColors = JSON.parse(product.colors || '').join(', '); } catch(e) {}
-  res.render('products/edit', { title: '\u7de8\u8f2f\u5546\u54c1', product, categories, images, editSizes: pSizes, editColors: pColors });
+  var variants = getVariants(db, Number(req.params.id));
+  var variantsText = variants.map(function(v) { return v.size + ', ' + v.color + ', ' + v.quantity; }).join('\n');
+  res.render('products/edit', { title: '\u7de8\u8f2f\u5546\u54c1', product, categories, images, editSizes: pSizes, editColors: pColors, variants, variantsText: variantsText });
 });
 
 router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
@@ -463,6 +524,9 @@ router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
   params.push(pid);
   db.raw.exec('UPDATE products SET ' + updates.join(', ') + ', updated_at = CURRENT_TIMESTAMP WHERE id = ?', params);
 
+  // Save variants
+  saveVariants(db, pid, req.body.variants || '');
+
   req.flash('success', '\u5546\u54c1\u300c' + name + '\u300d\u5df2\u66f4\u65b0');
   res.redirect('/products/manage');
 });
@@ -481,3 +545,5 @@ router.post('/:id/toggle', requireAdmin, (req, res) => {
 });
 
 module.exports = router;
+
+

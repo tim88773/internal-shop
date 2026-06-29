@@ -1,4 +1,4 @@
-const Database = require('better-sqlite3');
+﻿const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
@@ -165,7 +165,32 @@ function getDB() {
     )
   `);
 
-  // Products points columns
+
+  // Product variants table (per size/color inventory)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS product_variants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL,
+      size TEXT DEFAULT '',
+      color TEXT DEFAULT '',
+      quantity INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (product_id) REFERENCES products(id),
+      UNIQUE(product_id, size, color)
+    )
+  `);
+
+  // User permissions table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_permissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL,
+      module TEXT NOT NULL,
+      action TEXT NOT NULL,
+      granted INTEGER NOT NULL DEFAULT 1,
+      FOREIGN KEY (employee_id) REFERENCES employees(id),
+      UNIQUE(employee_id, module, action)
+    )
+  `);  // Products points columns
   if (productCols.indexOf('allow_points_discount') === -1) db.exec("ALTER TABLE products ADD COLUMN allow_points_discount INTEGER NOT NULL DEFAULT 1");
   if (productCols.indexOf('earn_points') === -1) db.exec("ALTER TABLE products ADD COLUMN earn_points INTEGER NOT NULL DEFAULT 1");
 
@@ -188,7 +213,34 @@ function getDB() {
     db.prepare("INSERT INTO employees (username, password, display_name, email, role) VALUES (?, ?, ?, ?, ?)").run('test', hashed, '\u6e2c\u8a66\u6d88\u8cbb\u8005', 'test@shop.local', 'user');
   }
 
+
+  // Seed default permissions for all non-admin employees
+  var allEmployees = db.prepare("SELECT id, role FROM employees WHERE role != 'admin'").all();
+  if (allEmployees.length > 0) {
+    var defaultModules = ['products', 'orders', 'categories', 'members', 'permissions'];
+    var defaultActions = ['create', 'read', 'update', 'delete'];
+    var insertPerm = db.prepare('INSERT OR IGNORE INTO user_permissions (employee_id, module, action, granted) VALUES (?, ?, ?, ?)');
+    for (var ei = 0; ei < allEmployees.length; ei++) {
+      var emp = allEmployees[ei];
+      var existingCount = db.prepare('SELECT COUNT(1) as cnt FROM user_permissions WHERE employee_id = ?').get(emp.id);
+      if (existingCount.cnt === 0) {
+        for (var mi = 0; mi < defaultModules.length; mi++) {
+          for (var ai = 0; ai < defaultActions.length; ai++) {
+            var action = defaultActions[ai];
+            var granted = 1;
+            // Default: no delete permission for non-admin
+            if (action === 'delete') granted = 0;
+            // Default: no permissions management for non-admin
+            if (defaultModules[mi] === 'permissions') granted = 0;
+            insertPerm.run(emp.id, defaultModules[mi], action, granted);
+          }
+        }
+      }
+    }
+  }
   return db;
 }
 
 module.exports = { getDB };
+
+

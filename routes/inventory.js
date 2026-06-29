@@ -266,4 +266,75 @@ router.post('/batch-import', requireAdmin, (req, res) => {
   res.redirect('/inventory');
 });
 
+
+// ---- Export inventory to Excel ----
+router.get('/export', requireAdmin, (req, res) => {
+  const db = getDB();
+  const ExcelJS = require('exceljs');
+
+  var workbook = new ExcelJS.Workbook();
+  var sheet = workbook.addWorksheet('庫存明細');
+
+  sheet.columns = [
+    { header: '款式號碼', key: 'style_code', width: 16 },
+    { header: '商品名稱', key: 'name', width: 28 },
+    { header: '分類', key: 'category', width: 14 },
+    { header: '尺寸', key: 'size', width: 12 },
+    { header: '顏色', key: 'color', width: 14 },
+    { header: '庫存數量', key: 'quantity', width: 14 },
+    { header: '總庫存', key: 'total_qty', width: 14 },
+    { header: '所屬門市', key: 'store', width: 14 },
+  ];
+
+  var headerRow = sheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC98686' } };
+  headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+  var products = db.prepare('SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON c.id = p.category_id ORDER BY p.name').all();
+  var allVariants = db.prepare('SELECT * FROM product_variants ORDER BY product_id, size, color').all();
+  var variantMap = {};
+  for (var i = 0; i < allVariants.length; i++) {
+    var v = allVariants[i];
+    if (!variantMap[v.product_id]) variantMap[v.product_id] = [];
+    variantMap[v.product_id].push(v);
+  }
+
+  for (var j = 0; j < products.length; j++) {
+    var p = products[j];
+    var variants = variantMap[p.id] || [];
+    if (variants.length > 0) {
+      for (var k = 0; k < variants.length; k++) {
+        var v = variants[k];
+        sheet.addRow({
+          style_code: p.style_code || '',
+          name: p.name,
+          category: p.category_name || '',
+          size: v.size,
+          color: v.color,
+          quantity: v.quantity,
+          total_qty: p.quantity,
+          store: p.store || ''
+        });
+      }
+    } else {
+      sheet.addRow({
+        style_code: p.style_code || '',
+        name: p.name,
+        category: p.category_name || '',
+        size: '-',
+        color: '-',
+        quantity: p.quantity,
+        total_qty: p.quantity,
+        store: p.store || ''
+      });
+    }
+  }
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="inventory_export.xlsx"');
+
+  workbook.xlsx.write(res).then(function() { res.end(); });
+});
+
 module.exports = router;

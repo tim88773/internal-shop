@@ -25,6 +25,29 @@
     <% } %>
   </form>
 
+  <!-- Toolbar -->
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+    <button onclick="toggleBatchImport()" class="btn btn-outline btn-sm">📥 批次庫存導入</button>
+    <a href="/inventory/export" class="btn btn-outline btn-sm">📤 庫存導出 (Excel)</a>
+  </div>
+
+  <!-- Batch Import Section -->
+  <div id="batchImportSection" style="display:none;margin-bottom:16px;">
+    <div class="card" style="padding:16px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">批次庫存導入</div>
+      <p class="text-muted" style="font-size:12px;margin-bottom:8px;">
+        每行一筆，格式：款式號碼, 尺寸, 顏色, 數量<br>
+        範例：TS-001, M, 黑色, 15
+      </p>
+      <form action="/inventory/batch-import" method="POST">
+        <textarea name="data" style="width:100%;min-height:120px;padding:10px;border:1px solid var(--border);border-radius:6px;font-family:monospace;font-size:13px;" placeholder="TS-001, M, 黑色, 15&#10;TS-001, L, 黑色, 10&#10;TS-002, F, 白色, 20"></textarea>
+        <div style="margin-top:8px;">
+          <button type="submit" class="btn btn-success btn-sm">📥 執行導入</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <% if (products.length === 0) { %>
     <div class="empty-state">
       <div class="icon">&#x1F4E6;</div>

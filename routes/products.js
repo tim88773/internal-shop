@@ -582,6 +582,25 @@ router.post('/batch-delete', requireAdmin, (req, res) => {
   res.redirect('/products/manage');
 });
 
+
+// ---- Individual delete ----
+router.post('/:id/delete', requireAdmin, (req, res) => {
+  const db = getDB();
+  var pid = Number(req.params.id);
+  var product = db.prepare('SELECT name FROM products WHERE id = ?').get(pid);
+  if (!product) {
+    req.flash('error', '找不到該商品');
+    return res.redirect('/products/manage');
+  }
+  db.raw.exec('DELETE FROM product_images WHERE product_id = ?', [pid]);
+  db.raw.exec('DELETE FROM product_variants WHERE product_id = ?', [pid]);
+  db.raw.exec('DELETE FROM cart_items WHERE product_id = ?', [pid]);
+  db.raw.exec('DELETE FROM order_items WHERE product_id = ?', [pid]);
+  db.raw.exec('DELETE FROM products WHERE id = ?', [pid]);
+  req.flash('success', '商品「' + product.name + '」已刪除');
+  res.redirect('/products/manage');
+});
+
 module.exports = router;
 
 

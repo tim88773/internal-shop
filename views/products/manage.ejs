@@ -1,13 +1,8 @@
-    <div class="btn-group">
-      <a href="/products/import" class="btn btn-outline btn-sm">⬇ Excel 導入</a>
-      <a href="/products/new" class="btn btn-success">+ 新增商品</a>
-      <button id="batchDeleteBtn" class="btn btn-danger btn-sm" onclick="batchDelete()" style="display:none;">✂ 批次刪除</button>
-    </div><div class="container">
+<div class="container">
   <div class="flex-between mb-4">
     <h1 style="font-size:22px;font-weight:700;">&#x2699; 商品管理</h1>
     <div class="btn-group">
-      <a href="/products/import" class="btn btn-outline btn-sm">&#x1F4E5; Excel 匯入</a>
-      <a href="/products/new" class="btn btn-success">+ 新增商品</a>
+            <button id="batchDeleteBtn" class="btn btn-danger btn-sm" onclick="batchDelete()" style="display:none;">✂ 批次刪除</button>
     </div>
   </div>
 
@@ -62,6 +57,9 @@
                   <button type="submit" class="btn btn-sm <%= p.is_active ? 'btn-warning' : 'btn-success' %>">
                     <%= p.is_active ? '下架' : '上架' %>
                   </button>
+                </form>
+                <form action="/products/<%= p.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('確定刪除此商品？')">
+                  <button type="submit" class="btn btn-sm btn-danger" style="padding:6px 10px;font-size:12px;">&#x1F5D1;</button>
                 </form>
               </div>
             </td>

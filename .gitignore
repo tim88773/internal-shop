@@ -7,3 +7,5 @@ data/*.db
 public/uploads/
 
 data/*.db-*
+
+data/backup-*.json

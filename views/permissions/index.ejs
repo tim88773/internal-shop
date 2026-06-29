@@ -1,23 +1,23 @@
 <div class="container">
   <div class="flex-between mb-4">
-    <h1 style="font-size:22px;font-weight:700;">&#x1F512; 权限管理</h1>
+    <h1 style="font-size:22px;font-weight:700;">&#x1F512; 權限管理</h1>
   </div>
 
   <div class="card">
     <p class="text-muted mb-4" style="font-size:13px;line-height:1.6;">
-      设定每位员工的权限。管理员（admin）自动拥有所有权限，无需设定。<br>
-      每个模块可分别控制：新增、查看、编辑、删除四项操作。
+      設定每位員工的權限。管理員（admin）自動擁有所有權限，無需設定。<br>
+      每個模組可分別控制：新增、檢視、編輯、刪除四項操作。
     </p>
 
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>员工</th>
-            <th>帐号</th>
-            <th>所属门市</th>
+            <th>員工</th>
+            <th>帳號</th>
+            <th>所屬門市</th>
             <th>角色</th>
-            <th>权限摘要</th>
+            <th>權限摘要</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -29,12 +29,12 @@
             <td><%= emp.store || '-' %></td>
             <td>
               <span class="status <%= emp.role === 'admin' ? 'status-accepted' : 'status-pending' %>">
-                <%= emp.role === 'admin' ? '管理员' : '一般员工' %>
+                <%= emp.role === 'admin' ? '管理員' : '一般員工' %>
               </span>
             </td>
             <td>
               <% if (emp.role === 'admin') { %>
-                <span style="color:var(--success);font-weight:600;">全部权限</span>
+                <span style="color:var(--success);font-weight:600;">全部權限</span>
               <% } else { %>
                 <% var ep = employeePermissions[emp.id] || {}; %>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -49,7 +49,7 @@
             </td>
             <td>
               <% if (emp.role !== 'admin') { %>
-                <a href="/permissions/<%= emp.id %>/edit" class="btn btn-outline btn-sm">编辑权限</a>
+                <a href="/permissions/<%= emp.id %>/edit" class="btn btn-outline btn-sm">編輯權限</a>
               <% } else { %>
                 <span class="text-muted">-</span>
               <% } %>

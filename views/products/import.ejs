@@ -1,0 +1,47 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F4E5; Excel 匯入商品</h1>
+    <div>
+      <a href="/products/import/template" class="btn btn-outline btn-sm">&#x1F4C4; 下載範本</a>
+      <a href="/products/manage" class="btn btn-outline btn-sm">返回管理</a>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:600px;margin:0 auto;">
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:8px;">格式說明</h2>
+    <div class="text-muted" style="font-size:13px;margin-bottom:16px;line-height:1.7;">
+      <p>上傳 Excel (.xlsx) 檔案，第一行必須為標題列，支援以下欄位：</p>
+      <table style="font-size:12px;width:100%;margin-top:8px;">
+        <tr><th style="text-align:left;padding:4px 8px;">欄位</th><th style="text-align:left;padding:4px 8px;">說明</th><th style="text-align:left;padding:4px 8px;">必填</th></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">分類</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">自動建立不存在的分類</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">選填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">商品名稱</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">商品名稱</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">必填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">售價</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">數字</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">必填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">原價</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">數字，顯示劃線價格</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">選填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">描述</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">商品描述文字</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">選填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">庫存</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">數字，預設 1</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">選填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">缺陷原因</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">商品缺陷說明</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">選填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">尺寸</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">逗號分隔，如 S, M, L</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">選填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">顏色</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">逗號分隔，如 黑色, 白色</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">選填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">所屬門市</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">門市名稱</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">選填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">開放積點折抵</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">是/否 或 1/0</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">選填</td></tr>
+        <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);">購買可獲得積點</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">是/否 或 1/0</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">選填</td></tr>
+      </table>
+      <p style="margin-top:12px;">欄位順序不拘，系統會自動對應標題名稱。</p>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
+
+    <form action="/products/import" method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="excel_file">選擇 Excel 檔案</label>
+        <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls" required>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">僅接受 .xlsx / .xls 格式</div>
+      </div>
+      <div class="form-check mb-4">
+        <input type="checkbox" id="clear_first" name="clear_first" value="1">
+        <label for="clear_first" style="margin:0;color:var(--danger);font-weight:600;">匯入前先清空所有商品與分類（危險操作）</label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">&#x1F4E5; 開始匯入</button>
+    </form>
+  </div>
+</div>

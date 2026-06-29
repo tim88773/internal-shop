@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= typeof title !== 'undefined' ? title : '內部購物商城' %> | 黛莉貝爾購物中心</title>
+  <title><%= typeof title !== 'undefined' ? title : '?折鞈潛??' %> | 暺?鞎鞈潛銝剖?</title>
   <style>
     :root {
       --bg: #fcfaf8;
@@ -548,32 +548,33 @@
     .text-right { text-align: right; }
     .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
     .gap-2 { gap: 8px; }
+    .nav-close { display: none; }
   </style>
 </head>
 <body>
   <% if (typeof currentUser !== 'undefined' && currentUser) { %>
   <div class="navbar">
     <a href="/dashboard" class="brand">
-      &#x1F6D2; 黛莉貝爾購物中心
+      &#x1F6D2; 暺?鞎鞈潛銝剖?
     </a>
-    <button id="navToggle" class="nav-toggle" aria-label="選單">&#x2630;</button>
+    <button id="navToggle" class="nav-toggle" aria-label="?詨">&#x2630;</button>
     <nav>
-      <a href="/products">商品瀏覽</a>
-      <a href="/orders/cart">購物車<% if (typeof session !== 'undefined' && session && session._cart && session._cart.length) { %><span class="cart-badge"><%= session._cart.length %></span><% } %></a>
-      <a href="/orders/my">我的訂單</a>
-      <a href="/profile">會員資料</a>
+      <a href="/products">???汗</a>
+      <a href="/orders/cart">鞈潛頠?% if (typeof session !== 'undefined' && session && session._cart && session._cart.length) { %><span class="cart-badge"><%= session._cart.length %></span><% } %></a>
+      <a href="/orders/my">??閮</a>
+      <a href="/profile">?鞈?</a>
       <% if (currentUser && currentUser.role === 'admin') { %>
-        <a href="/products/manage">商品管理</a>
-        <a href="/inventory">庫存管理</a>
-        <a href="/categories">分類管理</a>
-        <a href="/orders">所有訂單</a>
-        <a href="/members">會員管理</a>
-        <a href="/permissions">權限管理</a>
+        <a href="/products/manage">??蝞∠?</a>
+        <a href="/inventory">摨怠?蝞∠?</a>
+        <a href="/categories">??蝞∠?</a>
+        <a href="/orders">?????/a>
+        <a href="/members">?蝞∠?</a>
+        <a href="/permissions">甈?蝞∠?</a>
       <% } %>
     </nav>
     <div class="user-info">
       <span class="name"><%= currentUser.display_name %></span>
-      <a href="/logout" class="btn btn-outline btn-sm" style="color:var(--text-secondary);border-color:var(--border);">登出</a>
+      <a href="/logout" class="btn btn-outline btn-sm" style="color:var(--text-secondary);border-color:var(--border);">?餃</a>
     </div>
   </div>
   <% } %>
@@ -600,7 +601,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var closeBtn = document.createElement('button');
     closeBtn.className = 'nav-close';
     closeBtn.innerHTML = '&#x2715;';
-    closeBtn.setAttribute('aria-label', '關閉選單');
+    closeBtn.setAttribute('aria-label', '???詨');
     nav.insertBefore(closeBtn, nav.firstChild);
 
     // Create overlay

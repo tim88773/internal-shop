@@ -74,6 +74,7 @@ app.use((req, res, next) => {
 
 app.use('/', require('./routes/auth'));
 app.use('/products', require('./routes/products'));
+app.use('/inventory', require('./routes/inventory'));
 app.use('/orders', require('./routes/orders'));
 app.use('/categories', require('./routes/categories'));
 app.use('/profile', require('./routes/profile'));

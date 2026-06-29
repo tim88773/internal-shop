@@ -1,0 +1,151 @@
+<div class="container">
+  <div class="flex-between mb-4">
+    <h1 style="font-size:22px;font-weight:700;">&#x1F4E6; 庫存管理</h1>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:13px;color:var(--text-secondary);">
+        低庫存商品：<strong style="color:<%= lowStockCount > 0 ? 'var(--danger)' : 'var(--success)' %>;"><%= lowStockCount %></strong> 項
+      </span>
+      <form action="/inventory/recalc-all" method="POST" style="display:inline;">
+        <button type="submit" class="btn btn-outline btn-sm">&#x1F504; 重新計算總庫存</button>
+      </form>
+    </div>
+  </div>
+
+  <form class="search-bar" method="GET">
+    <input type="text" name="search" placeholder="搜尋商品名稱或分類..." value="<%= search %>">
+    <select name="category">
+      <option value="">全部分類</option>
+      <% categories.forEach(function(c) { %>
+        <option value="<%= c.id %>" <%= String(categoryId) === String(c.id) ? 'selected' : '' %>><%= c.name %></option>
+      <% }); %>
+    </select>
+    <button type="submit" class="btn btn-primary">搜尋</button>
+    <% if (search || categoryId) { %>
+      <a href="/inventory" class="btn btn-outline">清除</a>
+    <% } %>
+  </form>
+
+  <% if (products.length === 0) { %>
+    <div class="empty-state">
+      <div class="icon">&#x1F4E6;</div>
+      <p>目前沒有符合條件的商品</p>
+      <a href="/products/new" class="btn btn-primary mt-4">新增商品</a>
+    </div>
+  <% } else { %>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <% products.forEach(function(p) { %>
+      <div class="card" style="padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;cursor:pointer;" onclick="toggleVariants(<%= p.id %>)">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <% if (p.image_url) { %>
+              <img src="<%= p.image_url %>" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
+            <% } else { %>
+              <div style="width:40px;height:40px;background:#f1f5f9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text-secondary);">&#x1F4E6;</div>
+            <% } %>
+            <div>
+              <strong style="font-size:15px;"><%= p.name %></strong>
+              <% if (p.category_name) { %><span style="font-size:11px;color:var(--text-secondary);margin-left:6px;"><%= p.category_name %></span><% } %>
+              <% if (p.store) { %><span style="font-size:11px;color:var(--primary);margin-left:6px;"><%= p.store %></span><% } %>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="text-align:right;">
+              <div style="font-size:20px;font-weight:700;color:<%= p.quantity <= 3 ? 'var(--danger)' : 'var(--success)' %>;"><%= p.quantity %></div>
+              <div style="font-size:11px;color:var(--text-secondary);">
+                <% if (p.variantCount > 0) { %>
+                  <%= p.variantCount %> 個變體
+                <% } else { %>
+                  無變體
+                <% } %>
+              </div>
+            </div>
+            <span style="color:var(--text-secondary);font-size:18px;" id="toggle-icon-<%= p.id %>">
+              &#x25BC;
+            </span>
+          </div>
+        </div>
+
+        <!-- Variant rows (collapsible) -->
+        <div id="variants-<%= p.id %>" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+          <% if (p.variants.length === 0) { %>
+            <div class="text-muted" style="text-align:center;padding:12px;">
+              此商品尚無顏色/尺寸庫存明細<br>
+              <span style="font-size:12px;">請在上方輸入新增</span>
+            </div>
+          <% } else { %>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:8px;align-items:center;font-size:12px;color:var(--text-secondary);padding:4px 8px;margin-bottom:4px;">
+              <div>尺寸</div>
+              <div>顏色</div>
+              <div style="text-align:right;">庫存</div>
+              <div></div>
+              <div></div>
+            </div>
+            <% p.variants.forEach(function(v) { %>
+            <form action="/inventory/update-variant" method="POST" style="display:contents;">
+              <input type="hidden" name="variant_id" value="<%= v.id %>">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:6px;background:#f8fafc;margin-bottom:4px;">
+                <div style="font-size:14px;font-weight:500;"><%= v.size %></div>
+                <div style="font-size:14px;"><%= v.color %></div>
+                <div>
+                  <input type="number" name="quantity" value="<%= v.quantity %>" min="0"
+                    style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:14px;text-align:right;float:right;"
+                    onchange="this.form.submit()">
+                </div>
+                <div>
+                  <button type="submit" class="btn btn-sm btn-success" style="padding:6px 10px;font-size:12px;display:none;" id="save-<%= v.id %>">儲存</button>
+                </div>
+                <div>
+                  <form action="/inventory/delete-variant" method="POST" style="display:inline;" onsubmit="return confirm('確定刪除此庫存變體？')">
+                    <input type="hidden" name="variant_id" value="<%= v.id %>">
+                    <button type="submit" class="btn btn-sm btn-danger" style="padding:6px 8px;font-size:12px;">&#x2715;</button>
+                  </form>
+                </div>
+              </div>
+            </form>
+            <% }); %>
+          <% } %>
+
+          <!-- Add new variant form -->
+          <div style="border-top:1px dashed var(--border);margin-top:8px;padding-top:10px;">
+            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">+ 新增庫存變體</div>
+            <form action="/inventory/add-variant" method="POST" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+              <input type="hidden" name="product_id" value="<%= p.id %>">
+              <div>
+                <label style="font-size:11px;color:var(--text-secondary);display:block;">尺寸</label>
+                <input type="text" name="size" placeholder="如 M" required style="width:70px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-secondary);display:block;">顏色</label>
+                <input type="text" name="color" placeholder="如 黑色" required style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-secondary);display:block;">數量</label>
+                <input type="number" name="quantity" value="0" min="0" style="width:70px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
+              </div>
+              <button type="submit" class="btn btn-sm btn-success">新增</button>
+            </form>
+          </div>
+
+          <div style="margin-top:8px;text-align:right;">
+            <a href="/products/<%= p.id %>/edit" class="btn btn-outline btn-sm" style="font-size:12px;">&#x270F; 編輯完整商品</a>
+          </div>
+        </div>
+      </div>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+<script>
+function toggleVariants(id) {
+  var el = document.getElementById('variants-' + id);
+  var icon = document.getElementById('toggle-icon-' + id);
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    icon.innerHTML = '&#x25B2;';
+  } else {
+    el.style.display = 'none';
+    icon.innerHTML = '&#x25BC;';
+  }
+}
+</script>

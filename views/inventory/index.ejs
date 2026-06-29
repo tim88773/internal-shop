@@ -1,18 +1,18 @@
 <div class="container">
   <div class="flex-between mb-4">
-    <h1 style="font-size:22px;font-weight:700;">&#x1F4E6; 庫存管理</h1>
+    <h1 style="font-size:22px;font-weight:700;">庫存管理</h1>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <span style="font-size:13px;color:var(--text-secondary);">
-        低庫存商品：<strong style="color:<%= lowStockCount > 0 ? 'var(--danger)' : 'var(--success)' %>;"><%= lowStockCount %></strong> 項
+        低庫存商品 <strong style="color=<%= lowStockCount > 0 ? 'var(--danger)' : 'var(--success)' %>;"><%= lowStockCount %></strong> 項
       </span>
       <form action="/inventory/recalc-all" method="POST" style="display:inline;">
-        <button type="submit" class="btn btn-outline btn-sm">&#x1F504; 重新計算總庫存</button>
+        <button type="submit" class="btn btn-outline btn-sm">重新計算總庫存</button>
       </form>
     </div>
   </div>
 
   <form class="search-bar" method="GET">
-    <input type="text" name="search" placeholder="搜尋商品名稱或分類..." value="<%= search %>">
+    <input type="text" name="search" placeholder="搜尋商品名稱/款式編號.." value="<%= search %>">
     <select name="category">
       <option value="">全部分類</option>
       <% categories.forEach(function(c) { %>
@@ -25,37 +25,48 @@
     <% } %>
   </form>
 
-  <!-- Toolbar -->
-  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-    <button onclick="toggleBatchImport()" class="btn btn-outline btn-sm">📥 批次庫存導入</button>
-    <a href="/inventory/export" class="btn btn-outline btn-sm">📤 庫存導出 (Excel)</a>
+  <!-- Excel Import Section (Primary method - shown by default) -->
+  <div class="card" style="padding:16px;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <div style="font-size:15px;font-weight:600;">Excel 庫存匯入</div>
+        <p class="text-muted" style="font-size:12px;margin-top:4px;">
+          使用 Excel 檔案批次更新商品庫存（款式編號、尺寸、顏色、數量）<br>
+          系統會依款式編號自動對應商品，已存在的尺寸/顏色組合會更新數量，不存在的則新增
+        </p>
+      </div>
+      <div>
+        <a href="/inventory/import-template" class="btn btn-outline btn-sm">下載匯入範本</a>
+        <a href="/inventory/export" class="btn btn-outline btn-sm">匯出目前庫存 (Excel)</a>
+      </div>
+    </div>
+    <form action="/inventory/excel-import" method="POST" enctype="multipart/form-data" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+      <div>
+        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">選擇 Excel 檔案 (.xlsx / .xls)</label>
+        <input type="file" name="excel_file" accept=".xlsx,.xls" required style="padding:8px;border:1px solid var(--border);border-radius:4px;font-size:13px;background:#fff;">
+      </div>
+      <button type="submit" class="btn btn-success">開始匯入</button>
+    </form>
   </div>
 
-  <!-- Excel Import Section -->
-  <div id="batchImportSection" style="display:none;margin-bottom:16px;">
-    <div class="card" style="padding:16px;">
-      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Excel 庫存導入</div>
-      <p class="text-muted" style="font-size:12px;margin-bottom:8px;">
-        上傳 Excel 檔案，格式要求：<br>
-        第一列 = 款式號碼、第二列 = 尺寸、第三列 = 顏色、第四列 = 庫存數量<br>
-        第一列為標題列，從第二行開始讀取資料。
-      </p>
-      <div style="margin-bottom:8px;">
-        <a href="/inventory/import-template" class="btn btn-outline btn-sm">⬇ 下載範本檔</a>
-      </div>
-      <form action="/inventory/excel-import" method="POST" enctype="multipart/form-data">
-        <input type="file" name="excel_file" accept=".xlsx,.xls" required style="padding:8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
-        <div style="margin-top:8px;">
-          <button type="submit" class="btn btn-success btn-sm">📥 執行導入</button>
-        </div>
-      </form>
+  <!-- Tips: how the Excel import works -->
+  <details style="margin-bottom:12px;font-size:13px;color:var(--text-secondary);">
+    <summary style="cursor:pointer;font-weight:500;">Excel 匯入格式說明</summary>
+    <div style="margin-top:8px;padding:12px;background:#f8fafc;border-radius:6px;line-height:1.8;">
+      <strong>欄位順序：</strong>款式編號, 尺寸, 顏色, 庫存數量<br>
+      <strong>範例：</strong>
+      <pre style="background:#fff;padding:8px;border-radius:4px;font-size:12px;margin-top:4px;">
+TS-001, M, 黑色, 15
+TS-001, L, 黑色, 10
+TS-002, F, 白色, 20</pre>
+      <strong>注意：</strong>款式編號需與商品管理中的設定一致，該欄位可在商品管理中編輯
     </div>
-  </div>
+  </details>
 
   <% if (products.length === 0) { %>
     <div class="empty-state">
       <div class="icon">&#x1F4E6;</div>
-      <p>目前沒有符合條件的商品</p>
+      <p>目前沒有任何商品庫存資料</p>
       <a href="/products/new" class="btn btn-primary mt-4">新增商品</a>
     </div>
   <% } else { %>
@@ -81,15 +92,13 @@
               <div style="font-size:20px;font-weight:700;color:<%= p.quantity <= 3 ? 'var(--danger)' : 'var(--success)' %>;"><%= p.quantity %></div>
               <div style="font-size:11px;color:var(--text-secondary);">
                 <% if (p.variantCount > 0) { %>
-                  <%= p.variantCount %> 個變體
+                  <%= p.variantCount %> 個規格
                 <% } else { %>
-                  無變體
+                  無規格
                 <% } %>
               </div>
             </div>
-            <span style="color:var(--text-secondary);font-size:18px;" id="toggle-icon-<%= p.id %>">
-              &#x25BC;
-            </span>
+            <span style="color:var(--text-secondary);font-size:18px;" id="toggle-icon-<%= p.id %>">&#x25BC;</span>
           </div>
         </div>
 
@@ -97,8 +106,8 @@
         <div id="variants-<%= p.id %>" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
           <% if (p.variants.length === 0) { %>
             <div class="text-muted" style="text-align:center;padding:12px;">
-              此商品尚無顏色/尺寸庫存明細<br>
-              <span style="font-size:12px;">請在上方輸入新增</span>
+              此商品尚未設定尺寸／顏色庫存<br>
+              <span style="font-size:12px;">請使用上方 Excel 匯入或手動新增</span>
             </div>
           <% } else { %>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:8px;align-items:center;font-size:12px;color:var(--text-secondary);padding:4px 8px;margin-bottom:4px;">
@@ -123,7 +132,7 @@
                   <button type="submit" class="btn btn-sm btn-success" style="padding:6px 10px;font-size:12px;display:none;" id="save-<%= v.id %>">儲存</button>
                 </div>
                 <div>
-                  <form action="/inventory/delete-variant" method="POST" style="display:inline;" onsubmit="return confirm('確定刪除此庫存變體？')">
+                  <form action="/inventory/delete-variant" method="POST" style="display:inline;" onsubmit="return confirm('確定刪除此規格庫存？')">
                     <input type="hidden" name="variant_id" value="<%= v.id %>">
                     <button type="submit" class="btn btn-sm btn-danger" style="padding:6px 8px;font-size:12px;">&#x2715;</button>
                   </form>
@@ -133,9 +142,9 @@
             <% }); %>
           <% } %>
 
-          <!-- Add new variant form -->
+          <!-- Add new variant form with dropdowns from product management -->
           <div style="border-top:1px dashed var(--border);margin-top:8px;padding-top:10px;">
-            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">+ 新增庫存變體</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">+ 手動新增庫存規格</div>
             <form action="/inventory/add-variant" method="POST" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
               <input type="hidden" name="product_id" value="<%= p.id %>">
               <div>
@@ -147,7 +156,7 @@
                     <option value="<%= s %>"><%= s %></option>
                     <% }); %>
                   <% } else { %>
-                    <option value="-">-</option>
+                    <option value="" disabled>請先至商品管理設定尺寸</option>
                   <% } %>
                 </select>
               </div>
@@ -160,7 +169,7 @@
                     <option value="<%= c %>"><%= c %></option>
                     <% }); %>
                   <% } else { %>
-                    <option value="-">-</option>
+                    <option value="" disabled>請先至商品管理設定顏色</option>
                   <% } %>
                 </select>
               </div>
@@ -170,10 +179,13 @@
               </div>
               <button type="submit" class="btn btn-sm btn-success">新增</button>
             </form>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">
+              尺寸與顏色選項來自「商品管理」中的設定，如欲新增請至商品管理編輯
+            </div>
           </div>
 
           <div style="margin-top:8px;text-align:right;">
-            <a href="/products/<%= p.id %>/edit" class="btn btn-outline btn-sm" style="font-size:12px;">&#x270F; 編輯完整商品</a>
+            <a href="/products/<%= p.id %>/edit" class="btn btn-outline btn-sm" style="font-size:12px;">編輯商品資料</a>
           </div>
         </div>
       </div>
@@ -193,9 +205,5 @@ function toggleVariants(id) {
     el.style.display = 'none';
     icon.innerHTML = '&#x25BC;';
   }
-}
-function toggleBatchImport() {
-  var el = document.getElementById('batchImportSection');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 </script>

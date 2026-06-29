@@ -63,7 +63,12 @@
       <div class="form-group">
         <label for="store">商品所屬門市</label>
         <input type="text" id="store" name="store" value="<%= product.store || '' %>" placeholder="如：台北門市，留空則不限門市">
+      </div>      <div class="form-group">
+        <label for="style_code">款式號碼</label>
+        <input type="text" id="style_code" name="style_code" value="<%= product.style_code || '' %>" placeholder="如 TS-001">
       </div>
+
+
 
       <div class="form-check mb-4">
         <input type="checkbox" id="allow_points_discount" name="allow_points_discount" value="1" <%= product.allow_points_discount ? 'checked' : '' %>>

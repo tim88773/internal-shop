@@ -43,9 +43,11 @@ router.get('/', requireAdmin, (req, res) => {
 
   // Filter by search
   if (search) {
+    var q = search.toLowerCase();
     products = products.filter(function(p) {
-      return p.name.toLowerCase().indexOf(search.toLowerCase()) >= 0 ||
-             (p.category_name && p.category_name.toLowerCase().indexOf(search.toLowerCase()) >= 0);
+      return p.name.toLowerCase().indexOf(q) >= 0 ||
+             (p.style_code && p.style_code.toLowerCase().indexOf(q) >= 0) ||
+             (p.category_name && p.category_name.toLowerCase().indexOf(q) >= 0);
     });
   }
 
@@ -182,6 +184,85 @@ router.post('/recalc-all', requireAdmin, (req, res) => {
     }
   }
   req.flash('success', '\u5df2\u91cd\u65b0\u8a08\u7b97 ' + count + ' \u500b\u5546\u54c1\u7684\u7e3d\u5eab\u5b58');
+  res.redirect('/inventory');
+});
+
+
+// ---- Batch import inventory via textarea ----
+router.post('/batch-import', requireAdmin, (req, res) => {
+  const db = getDB();
+  var raw = (req.body.data || '').trim();
+  if (!raw) {
+    req.flash('error', '請輸入庫存資料');
+    return res.redirect('/inventory');
+  }
+
+  var lines = raw.split(/\r?\n/).filter(Boolean);
+  var success = 0;
+  var errors = [];
+
+  for (var i = 0; i < lines.length; i++) {
+    try {
+      var parts = lines[i].split(',').map(function(s) { return s.trim(); });
+      if (parts.length < 4) {
+        errors.push('行 ' + (i+1) + ': 格式錯誤，需要 款式號碼, 尺寸, 顏色, 數量');
+        continue;
+      }
+      var styleCode = parts[0];
+      var size = parts[1];
+      var color = parts[2];
+      var qty = parseInt(parts[3]) || 0;
+
+      if (qty < 0) qty = 0;
+
+      // Find product by style_code
+      var product = db.prepare('SELECT id, sizes, colors FROM products WHERE style_code = ?').get(styleCode);
+      if (!product) {
+        errors.push('行 ' + (i+1) + ': 找不到款式號碼「' + styleCode + '」');
+        continue;
+      }
+
+      // Upsert variant
+      var existing = db.prepare('SELECT id FROM product_variants WHERE product_id = ? AND size = ? AND color = ?').get(product.id, size, color);
+      if (existing) {
+        db.raw.exec('UPDATE product_variants SET quantity = ? WHERE id = ?', [qty, existing.id]);
+      } else {
+        db.raw.exec('INSERT INTO product_variants (product_id, size, color, quantity) VALUES (?, ?, ?, ?)', [product.id, size, color, qty]);
+        // Update sizes/colors arrays
+        var sizesArr = []; var colorsArr = [];
+        try { sizesArr = JSON.parse(product.sizes || '[]'); } catch(e) {}
+        try { colorsArr = JSON.parse(product.colors || '[]'); } catch(e) {}
+        var changed = false;
+        if (sizesArr.indexOf(size) === -1) { sizesArr.push(size); changed = true; }
+        if (colorsArr.indexOf(color) === -1) { colorsArr.push(color); changed = true; }
+        if (changed) {
+          db.raw.exec('UPDATE products SET sizes = ?, colors = ? WHERE id = ?', [JSON.stringify(sizesArr), JSON.stringify(colorsArr), product.id]);
+        }
+      }
+      success++;
+    } catch (e) {
+      errors.push('行 ' + (i+1) + ': ' + e.message);
+    }
+  }
+
+  // Recalc totals for affected products
+  var msg = '已更新 ' + success + ' 筆庫存';
+  if (errors.length > 0) {
+    msg += '，' + errors.length + ' 筆錯誤：' + errors.slice(0, 5).join('; ');
+    req.flash('error', msg);
+  } else {
+    req.flash('success', msg);
+  }
+
+  // Recalc all totals
+  var allProds = db.prepare('SELECT id FROM products').all();
+  for (var j = 0; j < allProds.length; j++) {
+    var total = db.prepare('SELECT COALESCE(SUM(quantity),0) as total FROM product_variants WHERE product_id = ?').get(allProds[j].id);
+    if (total.total >= 0) {
+      db.raw.exec('UPDATE products SET quantity = ? WHERE id = ?', [total.total, allProds[j].id]);
+    }
+  }
+
   res.redirect('/inventory');
 });
 

@@ -44,6 +44,7 @@
             <% } %>
             <div>
               <strong style="font-size:15px;"><%= p.name %></strong>
+              <% if (p.style_code) { %><span style="font-size:11px;color:#888;margin-left:6px;font-family:monospace;">[<%= p.style_code %>]</span><% } %>
               <% if (p.category_name) { %><span style="font-size:11px;color:var(--text-secondary);margin-left:6px;"><%= p.category_name %></span><% } %>
               <% if (p.store) { %><span style="font-size:11px;color:var(--primary);margin-left:6px;"><%= p.store %></span><% } %>
             </div>
@@ -147,5 +148,9 @@ function toggleVariants(id) {
     el.style.display = 'none';
     icon.innerHTML = '&#x25BC;';
   }
+}
+function toggleBatchImport() {
+  var el = document.getElementById('batchImportSection');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 </script>

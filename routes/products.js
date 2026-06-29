@@ -98,6 +98,7 @@ router.get('/import/template', requireAdmin, function(req, res) {
     { header: '\u7f3a\u9677\u539f\u56e0', key: 'defect_reason', width: 26 },
     { header: '\u5c3a\u5bf8', key: 'sizes', width: 18 },
     { header: '\u984f\u8272', key: 'colors', width: 18 },
+    { header: '\u6b3e\u5f0f\u865f\u78bc', key: 'style_code', width: 16 },
     { header: '\u6240\u5c6c\u9580\u5e02', key: 'store', width: 14 },
     { header: '\u958b\u653e\u7a4d\u9ede\u6298\u62b5', key: 'allow_points', width: 16 },
     { header: '\u8cfc\u8cb7\u53ef\u7372\u5f97\u7a4d\u9ede', key: 'earn_points', width: 18 }
@@ -179,6 +180,7 @@ function processWorkbook(db, workbook, clearFirst, result) {
     '\u7f3a\u9677\u539f\u56e0': 'defect_reason',
     '\u5c3a\u5bf8': 'sizes',
     '\u984f\u8272': 'colors',
+    '\u6b3e\u5f0f\u865f\u78bc': 'style_code',
     '\u6240\u5c6c\u9580\u5e02': 'store',
     '\u958b\u653e\u7a4d\u9ede\u6298\u62b5': 'allow_points',
     '\u8cfc\u8cb7\u53ef\u7372\u5f97\u7a4d\u9ede': 'earn_points'
@@ -205,7 +207,7 @@ function processWorkbook(db, workbook, clearFirst, result) {
     db.exec('DELETE FROM categories');
   }
 
-  var insertProd = db.prepare('INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, sizes, colors, store, allow_points_discount, earn_points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  var insertProd = db.prepare('INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, sizes, colors, store, style_code, allow_points_discount, earn_points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   var findCat = db.prepare('SELECT id FROM categories WHERE name = ?');
   var createCat = db.prepare('INSERT INTO categories (name) VALUES (?)');
 
@@ -230,6 +232,7 @@ function processWorkbook(db, workbook, clearFirst, result) {
       var description = getCellStr(row, colMap['description']) || '';
       var defect_reason = getCellStr(row, colMap['defect_reason']) || '';
       var store = getCellStr(row, colMap['store']) || '';
+      var style_code = getCellStr(row, colMap['style_code']) || '';
       var sizes = getCellStr(row, colMap['sizes']) || '';
       var colors = getCellStr(row, colMap['colors']) || '';
 
@@ -251,7 +254,7 @@ function processWorkbook(db, workbook, clearFirst, result) {
         }
       }
 
-      insertProd.run(name, description, price, original_price, categoryId, quantity, defect_reason, JSON.stringify(sizesArr), JSON.stringify(colorsArr), store, allowPts, earnPts);
+      insertProd.run(name, description, price, original_price, categoryId, quantity, defect_reason, JSON.stringify(sizesArr), JSON.stringify(colorsArr), store, style_code || '', allowPts, earnPts);
       result.success++;
     } catch (err) {
       result.errors.push('\u884c ' + r + ': ' + err.message);
@@ -402,13 +405,14 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
   var allowPts = req.body.allow_points_discount ? 1 : 0;
   var earnPts = req.body.earn_points ? 1 : 0;
 
-  var insertResult = db.prepare('INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, store, image_url, sizes, colors, allow_points_discount, earn_points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+  var insertResult = db.prepare('INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, store, image_url, sizes, colors, style_code, allow_points_discount, earn_points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
     name, description || '', parseFloat(price) || 0,
     original_price ? parseFloat(original_price) : null,
     category_id ? Number(category_id) : null,
     0,
     defect_reason || '',
     storeVal,
+    req.body.style_code || '',
     coverUrl || null,
     JSON.stringify(sizesArr),
     JSON.stringify(colorsArr),
@@ -508,6 +512,7 @@ router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
   updates.push('colors = ?'); params.push(JSON.stringify(colorsArr2));
   updates.push('allow_points_discount = ?'); params.push(req.body.allow_points_discount ? 1 : 0);
   updates.push('earn_points = ?'); params.push(req.body.earn_points ? 1 : 0);
+  updates.push('style_code = ?'); params.push(req.body.style_code || '');
 
   if (req.files && req.files.cover && req.files.cover.length > 0) {
     updates.push('image_url = ?');
@@ -541,6 +546,39 @@ router.post('/:id/toggle', requireAdmin, (req, res) => {
   db.raw.exec('UPDATE products SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [product.is_active ? 0 : 1, Number(req.params.id)]);
   var action = product.is_active ? '\u4e0b\u67b6' : '\u4e0a\u67b6';
   req.flash('success', '\u5546\u54c1\u300c' + product.name + '\u300d\u5df2' + action);
+  res.redirect('/products/manage');
+});
+
+
+// ---- Batch delete ----
+router.post('/batch-delete', requireAdmin, (req, res) => {
+  const db = getDB();
+  var idsRaw = req.body.ids;
+  if (!idsRaw) {
+    req.flash('error', '\u8acb\u9078\u64c7\u81f3\u5c11\u4e00\u500b\u5546\u54c1');
+    return res.redirect('/products/manage');
+  }
+  var ids;
+  try { ids = JSON.parse(idsRaw); } catch(e) { ids = [idsRaw]; }
+  if (!Array.isArray(ids)) ids = [ids];
+  ids = ids.map(Number).filter(function(id) { return id > 0; });
+
+  if (ids.length === 0) {
+    req.flash('error', '\u7121\u6548\u7684\u5546\u54c1\u7de8\u865f');
+    return res.redirect('/products/manage');
+  }
+
+  var deleted = 0;
+  for (var i = 0; i < ids.length; i++) {
+    var pid = ids[i];
+    db.raw.exec('DELETE FROM product_images WHERE product_id = ?', [pid]);
+    db.raw.exec('DELETE FROM product_variants WHERE product_id = ?', [pid]);
+    db.raw.exec('DELETE FROM cart_items WHERE product_id = ?', [pid]);
+    db.raw.exec('DELETE FROM order_items WHERE product_id = ?', [pid]);
+    db.raw.exec('DELETE FROM products WHERE id = ?', [pid]);
+    deleted++;
+  }
+  req.flash('success', '\u5df2\u522a\u9664 ' + deleted + ' \u500b\u5546\u54c1');
   res.redirect('/products/manage');
 });
 

@@ -4,7 +4,7 @@
   "description": "Employee internal defective product purchase system",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
+    "start": "node railway-start.js",
     "dev": "node --watch app.js",
     "seed": "node seed.js",
     "backup": "node scripts/backup.js",

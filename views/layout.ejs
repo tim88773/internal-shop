@@ -581,12 +581,12 @@
 
   <% if (typeof error !== 'undefined' && error && error.length) { %>
   <div class="flash-container">
-    <% error.forEach(function(msg) { %><div class="flash flash-error">&#9888; <%- msg %></div><% }); %>
+    <% error.forEach(function(msg) { %><div class="flash flash-error">&#9888; <%= msg %></div><% }); %>
   </div>
   <% } %>
   <% if (typeof success !== 'undefined' && success && success.length) { %>
   <div class="flash-container">
-    <% success.forEach(function(msg) { %><div class="flash flash-success">&#10003; <%- msg %></div><% }); %>
+    <% success.forEach(function(msg) { %><div class="flash flash-success">&#10003; <%= msg %></div><% }); %>
   </div>
   <% } %>
 

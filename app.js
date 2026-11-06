@@ -109,7 +109,7 @@ app.get('/dashboard', (req, res) => {
     ro = db.prepare("SELECT o.id, o.created_at, o.status, e.display_name, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.employee_id = ? ORDER BY o.created_at DESC LIMIT 10").all(req.session.user.id);
   }
 
-  res.render('dashboard', { title: 'Dashboard', stats: { productCount: pc, activeOrders: ac, totalEmployees: te, lowStockCount: lc }, recentOrders: ro });
+  res.render('dashboard', { title: '儀表板', stats: { productCount: pc, activeOrders: ac, totalEmployees: te, lowStockCount: lc }, recentOrders: ro });
 });
 
 app.get('/', (req, res) => {

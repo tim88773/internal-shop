@@ -1,12 +1,14 @@
 <div class="container">
   <div class="flex-between mb-4">
     <h1 style="font-size:22px;font-weight:700;">&#x1F4CB; <%= typeof myOrders !== 'undefined' && myOrders ? '我的訂單' : '所有訂單' %></h1>
-    <% if (typeof myOrders !== 'undefined' && myOrders) { %>
+    <% var isAdmin = currentUser && currentUser.role === 'admin'; %>
+    <% if (isAdmin) { %>
       <a href="/orders/export" class="btn btn-primary btn-sm">&#x1F4E5; 匯出 Excel</a>
-      <a href="/orders" class="btn btn-outline">看所有訂單</a>
-    <% } else { %>
-      <a href="/orders/export" class="btn btn-primary btn-sm">匯出 Excel</a>
-      <a href="/orders/my" class="btn btn-outline">我的訂單</a>
+      <% if (typeof myOrders !== 'undefined' && myOrders) { %>
+        <a href="/orders" class="btn btn-outline">看所有訂單</a>
+      <% } else { %>
+        <a href="/orders/my" class="btn btn-outline">我的訂單</a>
+      <% } %>
     <% } %>
   </div>
 

@@ -2,7 +2,7 @@
   <div class="flex-between mb-4">
     <h1 style="font-size:22px;font-weight:700;">&#x1F4C4; 訂單 #<%= order.id %></h1>
     <div class="btn-group">
-      <a href="/orders" class="btn btn-outline">回訂單列表</a>
+      <a href="<%= currentUser && currentUser.role === 'admin' ? '/orders' : '/orders/my' %>" class="btn btn-outline">回訂單列表</a>
       <% if (currentUser && currentUser.role === 'admin') { %>
         <% if (nextStatus) { %>
           <form action="/orders/<%= order.id %>/advance" method="POST" style="display:inline;">

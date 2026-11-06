@@ -203,15 +203,18 @@ function getDB() {
   // Default admin account
   var row = db.prepare("SELECT id FROM employees WHERE username = ?").get('admin');
   if (!row) {
-    var hashed = bcrypt.hashSync('admin123', 10);
+    var initialAdminPassword = process.env.ADMIN_INIT_PASSWORD || 'admin123';
+    var hashed = bcrypt.hashSync(initialAdminPassword, 10);
     db.prepare("INSERT INTO employees (username, password, display_name, role) VALUES (?, ?, ?, ?)").run('admin', hashed, '\u7ba1\u7406\u54e1', 'admin');
   }
 
-  // Test consumer account
-  var test = db.prepare("SELECT id FROM employees WHERE username = ?").get('test');
-  if (!test) {
-    var hashed = bcrypt.hashSync('test123', 10);
-    db.prepare("INSERT INTO employees (username, password, display_name, email, role) VALUES (?, ?, ?, ?, ?)").run('test', hashed, '\u6e2c\u8a66\u6d88\u8cbb\u8005', 'test@shop.local', 'user');
+  // Test consumer account（僅在非 production 環境自動建立，避免正式環境出現已知帳密）
+  if (process.env.NODE_ENV !== 'production') {
+    var test = db.prepare("SELECT id FROM employees WHERE username = ?").get('test');
+    if (!test) {
+      var testHashed = bcrypt.hashSync('test123', 10);
+      db.prepare("INSERT INTO employees (username, password, display_name, email, role) VALUES (?, ?, ?, ?, ?)").run('test', testHashed, '\u6e2c\u8a66\u6d88\u8cbb\u8005', 'test@shop.local', 'user');
+    }
   }
 
 

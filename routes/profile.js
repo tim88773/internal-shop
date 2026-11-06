@@ -11,7 +11,7 @@ function reqAuth(req, res, next) {
 router.get('/', reqAuth, (req, res) => {
   const db = getDB();
   const user = db.prepare('SELECT * FROM employees WHERE id = ?').get(req.session.user.id);
-  if (!user) { req.flash('error', 'User not found'); return res.redirect('/dashboard'); }
+  if (!user) { req.flash('error', '找不到該使用者'); return res.redirect('/dashboard'); }
 
   // Get order statistics
   var orderStats = db.prepare("SELECT COUNT(1) as order_count, COALESCE(SUM(oi.quantity * oi.unit_price), 0) as total_spent, COALESCE(SUM(o.points_used), 0) as total_points_used FROM orders o JOIN order_items oi ON oi.order_id = o.id WHERE o.employee_id = ? AND o.status != 'cancelled'").get(user.id);
@@ -56,7 +56,7 @@ router.post('/', reqAuth, (req, res) => {
 router.get('/point-history', reqAuth, (req, res) => {
   const db = getDB();
   const user = db.prepare('SELECT * FROM employees WHERE id = ?').get(req.session.user.id);
-  if (!user) { req.flash('error', 'User not found'); return res.redirect('/dashboard'); }
+  if (!user) { req.flash('error', '找不到該使用者'); return res.redirect('/dashboard'); }
 
   const transactions = db.prepare("SELECT pt.*, o.id as ref_order_id FROM point_transactions pt LEFT JOIN orders o ON o.id = pt.reference_id AND pt.reference_type = 'order' WHERE pt.employee_id = ? ORDER BY pt.created_at DESC").all(user.id);
 

@@ -328,9 +328,13 @@ router.get('/export', reqAdmin, (req, res) => {
 router.get('/:id', reqAuth, (req, res) => {
   const db = getDB();
   const o = db.prepare("SELECT o.*, e.display_name, e.email FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.id = ?").get(Number(req.params.id));
-  if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
+  if (!o) { req.flash('error', '找不到該訂單'); return res.redirect(req.session.user.role === 'admin' ? '/orders' : '/orders/my'); }
+  if (req.session.user.role !== 'admin' && o.employee_id !== req.session.user.id) {
+    req.flash('error', '無權檢視此訂單');
+    return res.redirect('/orders/my');
+  }
   const items = db.prepare("SELECT oi.*, p.name, p.defect_reason, p.image_url FROM order_items oi JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?").all(Number(req.params.id));
-  res.render('orders/detail', { title: 'Order #' + o.id, order: o, items, statusLabel, nextStatus: NEXT_STATUS[o.status] || null });
+  res.render('orders/detail', { title: '訂單 #' + o.id, order: o, items, statusLabel, nextStatus: NEXT_STATUS[o.status] || null });
 });
 
 // ---- Cancel order ----

@@ -1,13 +1,16 @@
 node_modules/
-data/sessions/
-data/*.db
-*.log
 .env
+*.log
 
-public/uploads/
-
-data/*.db-*
-
+# SQLite 資料庫與執行期鎖定檔（不納入版控，資料由 Railway Volume 保存）
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/sessions/
 data/backup-*.json
 
+# 本機上傳圖片（正式環境存於 /data/uploads）
+public/uploads/
+
+# 備份檔
 *.bak

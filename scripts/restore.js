@@ -44,9 +44,11 @@ console.log('備份時間: ' + backup.exported_at);
 console.log('分類: ' + backup.categories.length + ' 筆');
 console.log('商品: ' + backup.products.length + ' 筆');
 console.log('商品圖片: ' + backup.product_images.length + ' 筆');
+console.log('商品規格: ' + (backup.product_variants ? backup.product_variants.length : 0) + ' 筆');
 console.log('');
 
 // 還原分類
+db.exec('DELETE FROM product_variants');
 db.exec('DELETE FROM product_images');
 db.exec('DELETE FROM products');
 db.exec('DELETE FROM categories');
@@ -58,15 +60,15 @@ for (var c of backup.categories) {
 
 // 還原商品
 var insertProd = db.prepare(`
-  INSERT INTO products (id, name, description, price, original_price, category_id, quantity, defect_reason, is_active, image_url, created_at, updated_at, sizes, colors, store, allow_points_discount, earn_points)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO products (id, name, description, price, original_price, category_id, quantity, defect_reason, is_active, image_url, created_at, updated_at, sizes, colors, store, style_code, allow_points_discount, earn_points)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 for (var p of backup.products) {
   insertProd.run(
     p.id, p.name, p.description || '', p.price, p.original_price,
     p.category_id, p.quantity, p.defect_reason || '', p.is_active,
     p.image_url, p.created_at, p.updated_at,
-    p.sizes || '[]', p.colors || '[]', p.store || '',
+    p.sizes || '[]', p.colors || '[]', p.store || '', p.style_code || '',
     p.allow_points_discount != null ? p.allow_points_discount : 1,
     p.earn_points != null ? p.earn_points : 1
   );
@@ -76,6 +78,13 @@ for (var p of backup.products) {
 var insertImg = db.prepare('INSERT INTO product_images (id, product_id, image_url, sort_order, is_cover) VALUES (?, ?, ?, ?, ?)');
 for (var img of backup.product_images) {
   insertImg.run(img.id, img.product_id, img.image_url, img.sort_order, img.is_cover || 0);
+}
+
+// 還原商品規格
+var variants = backup.product_variants || [];
+var insertVariant = db.prepare('INSERT INTO product_variants (id, product_id, size, color, quantity) VALUES (?, ?, ?, ?, ?)');
+for (var v of variants) {
+  insertVariant.run(v.id, v.product_id, v.size || '', v.color || '', v.quantity || 0);
 }
 
 console.log('===== 還原完成 =====');

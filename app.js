@@ -8,9 +8,54 @@ const { getDB } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const COOKIE_NAME = 'shop_sid';
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // Session 有效期：7 天
 
-// In-memory session store - synchronous and reliable
-const sessions = {};
+// ── Session 儲存：持久化於 SQLite，Railway 重新部署後登入狀態不再遺失 ──
+function parseSidFromCookie(raw) {
+  var s = raw || '';
+  var start = s.indexOf(COOKIE_NAME + '=');
+  if (start < 0) return '';
+  var valStart = start + COOKIE_NAME.length + 1;
+  var valEnd = s.indexOf(';', valStart);
+  if (valEnd < 0) valEnd = s.length;
+  try { return decodeURIComponent(s.substring(valStart, valEnd).trim()); } catch (e) { return ''; }
+}
+
+function loadSession(sid) {
+  if (!sid) return null;
+  var db = getDB();
+  var row = db.prepare('SELECT data, expires_at FROM sessions WHERE sid = ?').get(sid);
+  if (!row) return null;
+  if (row.expires_at <= Date.now()) {
+    db.prepare('DELETE FROM sessions WHERE sid = ?').run(sid);
+    return null;
+  }
+  try { return JSON.parse(row.data); } catch (e) { return null; }
+}
+
+function saveSession(sid, data) {
+  getDB().prepare('INSERT INTO sessions (sid, data, expires_at) VALUES (?, ?, ?) ON CONFLICT(sid) DO UPDATE SET data = excluded.data, expires_at = excluded.expires_at')
+    .run(sid, JSON.stringify(data), Date.now() + SESSION_TTL_MS);
+}
+
+function deleteSession(sid) {
+  if (!sid) return;
+  getDB().prepare('DELETE FROM sessions WHERE sid = ?').run(sid);
+}
+
+function cleanupExpiredSessions() {
+  try {
+    getDB().prepare('DELETE FROM sessions WHERE expires_at <= ?').run(Date.now());
+  } catch (e) {
+    console.error('[Session] 清理過期資料失敗:', e.message);
+  }
+}
+
+function sidCookie(req, sid) {
+  var c = COOKIE_NAME + '=' + encodeURIComponent(sid) + '; HttpOnly; Path=/; SameSite=Lax; Max-Age=' + Math.floor(SESSION_TTL_MS / 1000);
+  if (req.headers['x-forwarded-proto'] === 'https' || req.secure) c += '; Secure';
+  return c;
+}
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -19,36 +64,46 @@ app.set('layout', 'layout');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// On Railway (DATA_DIR set), also serve uploaded images from the persistent volume
+// Railway Volume：先確保上傳目錄存在，再掛載靜態路由
 if (process.env.DATA_DIR) {
   var uploadsDir = path.join(process.env.DATA_DIR, 'uploads');
-  if (fs.existsSync(uploadsDir)) {
-    app.use('/uploads', express.static(uploadsDir));
-  }
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  app.use('/uploads', express.static(uploadsDir));
 }
 
 
-// Simple session middleware (no express-session, no async issues)
+// Session 中介層（SQLite 版，無 express-session）
 app.use((req, res, next) => {
-  var raw = req.headers.cookie || '';
-  var sid = '';
-  // Extract session ID from cookie
-  var start = raw.indexOf(COOKIE_NAME + '=');
-  if (start >= 0) {
-    var valStart = start + COOKIE_NAME.length + 1;
-    var valEnd = raw.indexOf(';', valStart);
-    if (valEnd < 0) valEnd = raw.length;
-    sid = raw.substring(valStart, valEnd).trim();
-  }
-  var session = sessions[sid];
-  if (session) {
-    req.session = session;
-  } else {
+  var sid = parseSidFromCookie(req.headers.cookie);
+  var session = loadSession(sid);
+  if (!session) {
     sid = crypto.randomUUID();
-    sessions[sid] = { _id: sid };
-    req.session = sessions[sid];
+    session = { _id: sid };
   }
-  res.setHeader('Set-Cookie', COOKIE_NAME + '=' + sid + '; HttpOnly; Path=/');
+  req.session = session;
+  req.sessionId = sid;
+  res.setHeader('Set-Cookie', sidCookie(req, sid));
+
+  // 登入成功後更換 session 識別碼（防 session fixation）
+  req.sessionRegenerate = function() {
+    var oldSid = req.sessionId;
+    var newSid = crypto.randomUUID();
+    var data = req.session || {};
+    data._id = newSid;
+    req.session = data;
+    req.sessionId = newSid;
+    deleteSession(oldSid);
+    saveSession(newSid, data);
+    res.setHeader('Set-Cookie', sidCookie(req, newSid));
+  };
+
+  // 登出：刪除伺服器端 session
+  req.sessionDestroy = function() {
+    deleteSession(req.sessionId);
+    req.session = { _id: crypto.randomUUID() };
+    req.sessionId = req.session._id;
+    res.setHeader('Set-Cookie', sidCookie(req, req.sessionId));
+  };
 
   // Flash messages
   req.flash = function(type, msg) {
@@ -80,6 +135,20 @@ app.use((req, res, next) => {
       res.locals.cartCount = 0;
     }
   }
+
+  // 回應結束後寫入 / 清除 session
+  var sessionSaved = false;
+  res.on('finish', function() {
+    if (sessionSaved) return;
+    sessionSaved = true;
+    try {
+      var s = req.session;
+      if (s && (s.user || s._flash)) saveSession(req.sessionId, s);
+      else deleteSession(req.sessionId);
+    } catch (e) {
+      console.error('[Session] 寫入失敗:', e.message);
+    }
+  });
   next();
 });
 
@@ -118,6 +187,22 @@ app.get('/', (req, res) => {
 });
 
 try { getDB(); console.log('[Shop] DB ready'); } catch (e) { console.error('[Shop] DB error:', e.message); process.exit(1); }
+
+// 啟動時先清理一次過期 session，之後每小時清理
+cleanupExpiredSessions();
+setInterval(cleanupExpiredSessions, 60 * 60 * 1000).unref();
+
+// 找不到路由
+app.use((req, res) => {
+  res.status(404).render('error', { title: '找不到頁面', statusCode: 404, message: '找不到您要瀏覽的頁面，請確認網址是否正確。' });
+});
+
+// 統一錯誤處理，避免將堆疊資訊暴露給使用者
+app.use((err, req, res, next) => {
+  console.error('[Server Error]', err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  res.status(500).render('error', { title: '系統錯誤', statusCode: 500, message: '系統發生錯誤，請稍後再試或聯絡管理員。' });
+});
 
 app.listen(PORT, () => {
   console.log('[Internal Shop] Running at http://localhost:' + PORT);

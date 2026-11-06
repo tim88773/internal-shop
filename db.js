@@ -191,6 +191,25 @@ function getDB() {
       UNIQUE(employee_id, module, action)
     )
   `);  // Products points columns
+
+  // Session 儲存（持久化於 SQLite，重新部署後仍可維持登入）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      sid TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      expires_at INTEGER NOT NULL
+    )
+  `);
+
+  // 常用查詢索引（僅新增索引，不影響既有資料結構）
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions (expires_at)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_orders_employee ON orders (employee_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items (order_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items (product_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_cart_items_employee ON cart_items (employee_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images (product_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_product_variants_product ON product_variants (product_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_point_transactions_employee ON point_transactions (employee_id)');
   if (productCols.indexOf('allow_points_discount') === -1) db.exec("ALTER TABLE products ADD COLUMN allow_points_discount INTEGER NOT NULL DEFAULT 1");
   if (productCols.indexOf('earn_points') === -1) db.exec("ALTER TABLE products ADD COLUMN earn_points INTEGER NOT NULL DEFAULT 1");
 

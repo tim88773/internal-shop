@@ -72,6 +72,25 @@ function getProductImages(db, productId) {
   return db.prepare('SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order').all(Number(productId));
 }
 
+// 刪除商品時同步刪除 Volume 上的實體圖片，避免佔滿儲存空間
+function removeUploadedFiles(urls) {
+  (urls || []).forEach(function(url) {
+    if (!url || typeof url !== 'string' || url.indexOf('/uploads/') !== 0) return;
+    var filePath = path.join(UPLOAD_DIR, path.basename(url));
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (e) { /* 個別檔案刪除失敗不影響流程 */ }
+  });
+}
+
+function collectProductImageUrls(db, productId) {
+  var urls = [];
+  var p = db.prepare('SELECT image_url FROM products WHERE id = ?').get(productId);
+  if (p && p.image_url) urls.push(p.image_url);
+  db.prepare('SELECT image_url FROM product_images WHERE product_id = ?').all(productId).forEach(function(img) {
+    if (img.image_url) urls.push(img.image_url);
+  });
+  return urls;
+}
+
 function parseYesNo(val) {
   if (val == null) return 1;
   if (typeof val === 'number') return val ? 1 : 0;
@@ -594,11 +613,13 @@ router.post('/batch-delete', requireAdmin, (req, res) => {
   var deleted = 0;
   for (var i = 0; i < ids.length; i++) {
     var pid = ids[i];
+    var imgUrls = collectProductImageUrls(db, pid);
     db.raw.exec('DELETE FROM product_images WHERE product_id = ?', [pid]);
     db.raw.exec('DELETE FROM product_variants WHERE product_id = ?', [pid]);
     db.raw.exec('DELETE FROM cart_items WHERE product_id = ?', [pid]);
     db.raw.exec('DELETE FROM order_items WHERE product_id = ?', [pid]);
     db.raw.exec('DELETE FROM products WHERE id = ?', [pid]);
+    removeUploadedFiles(imgUrls);
     deleted++;
   }
   req.flash('success', '\u5df2\u522a\u9664 ' + deleted + ' \u500b\u5546\u54c1');
@@ -615,11 +636,13 @@ router.post('/:id/delete', requireAdmin, (req, res) => {
     req.flash('error', '找不到該商品');
     return res.redirect('/products/manage');
   }
+  var imgUrls = collectProductImageUrls(db, pid);
   db.raw.exec('DELETE FROM product_images WHERE product_id = ?', [pid]);
   db.raw.exec('DELETE FROM product_variants WHERE product_id = ?', [pid]);
   db.raw.exec('DELETE FROM cart_items WHERE product_id = ?', [pid]);
   db.raw.exec('DELETE FROM order_items WHERE product_id = ?', [pid]);
   db.raw.exec('DELETE FROM products WHERE id = ?', [pid]);
+  removeUploadedFiles(imgUrls);
   req.flash('success', '商品「' + product.name + '」已刪除');
   res.redirect('/products/manage');
 });

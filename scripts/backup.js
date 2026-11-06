@@ -18,7 +18,8 @@ var backup = {
   exported_at: new Date().toISOString(),
   categories: db.prepare('SELECT * FROM categories').all(),
   products: db.prepare('SELECT * FROM products').all(),
-  product_images: db.prepare('SELECT * FROM product_images').all()
+  product_images: db.prepare('SELECT * FROM product_images').all(),
+  product_variants: db.prepare('SELECT * FROM product_variants').all()
 };
 
 var filename = 'backup-' + new Date().toISOString().slice(0, 10) + '.json';
@@ -29,3 +30,4 @@ console.log('備份完成: ' + filepath);
 console.log('  分類: ' + backup.categories.length + ' 筆');
 console.log('  商品: ' + backup.products.length + ' 筆');
 console.log('  商品圖片: ' + backup.product_images.length + ' 筆');
+console.log('  商品規格: ' + backup.product_variants.length + ' 筆');

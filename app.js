@@ -69,6 +69,17 @@ app.use((req, res, next) => {
   res.locals.currentUser = req.session.user || null;
   res.locals.error = req.flash('error');
   res.locals.success = req.flash('success');
+
+  // 導覽列購物車數量徽章
+  res.locals.cartCount = 0;
+  if (req.session.user) {
+    try {
+      var cartSum = getDB().prepare('SELECT COALESCE(SUM(quantity), 0) as cnt FROM cart_items WHERE employee_id = ?').get(req.session.user.id);
+      res.locals.cartCount = cartSum ? cartSum.cnt : 0;
+    } catch (e) {
+      res.locals.cartCount = 0;
+    }
+  }
   next();
 });
 

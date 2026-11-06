@@ -560,7 +560,7 @@
     <button id="navToggle" class="nav-toggle" aria-label="選單">&#x2630;</button>
     <nav>
       <a href="/products">商品瀏覽</a>
-      <a href="/orders/cart">購物車<% if (typeof session !== 'undefined' && session && session._cart && session._cart.length) { %><span class="cart-badge"><%= session._cart.length %></span><% } %></a>
+      <a href="/orders/cart">購物車<% if (typeof cartCount !== 'undefined' && cartCount > 0) { %><span class="cart-badge"><%= cartCount %></span><% } %></a>
       <a href="/orders/my">我的訂單</a>
       <a href="/profile">會員資料</a>
       <% if (currentUser && currentUser.role === 'admin') { %>

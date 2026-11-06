@@ -54,6 +54,8 @@
               <th>所屬門市</th>
               <th>總金額</th>
               <th>狀態</th>
+              <th>付款方式</th>
+              <th>付款狀態</th>
               <th>下單時間</th>
               <th></th>
             </tr>
@@ -68,6 +70,15 @@
               <td><%= o.store || '-' %></td>
               <td style="font-weight:600;">$<%= Number(o.total_amount || 0).toLocaleString() %></td>
               <td><span class="status status-<%= o.status %>"><%= statusLabel(o.status) %></span></td>
+              <td style="font-size:13px;"><%= ({ transfer: '匯款', salary: '扣薪', hq_pickup: '總部取付' })[o.payment_method] || (o.payment_method || '-') %></td>
+              <td style="font-size:13px;">
+                <% if (o.payment_status === 'paid') { %>
+                  <span style="color:var(--success);font-weight:600;">已付款</span>
+                  <% if (o.payment_method === 'transfer' && o.payment_last5) { %><span class="text-muted">（後五碼 <%= o.payment_last5 %>）</span><% } %>
+                <% } else { %>
+                  <span style="color:var(--warning);font-weight:600;">待付款</span>
+                <% } %>
+              </td>
               <td class="text-muted"><%= new Date(o.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Taipei' }) %></td>
               <td><a href="/orders/<%= o.id %>" class="btn btn-outline btn-sm">明細</a></td>
             </tr>

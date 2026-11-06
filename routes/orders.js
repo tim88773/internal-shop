@@ -34,6 +34,41 @@ const NEXT_STATUS = {
 
 function statusLabel(s) { return STATUS_LABELS[s] || s; }
 
+// 取得指定商品的尺寸/顏色規格庫存（若該規格不存在則回傳 undefined）
+function findVariant(db, productId, size, color) {
+  return db.prepare('SELECT id, quantity FROM product_variants WHERE product_id = ? AND size = ? AND color = ?').get(productId, size || '', color || '');
+}
+
+// 取消訂單：回補商品與規格庫存、退回抵扣點數、收回獲得點數，並寫入點數異動紀錄。
+// 呼叫端必須自行包在 db.transaction() 內（better-sqlite3 不支援巢狀交易）。
+function cancelOrderInTx(db, o) {
+  var items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(o.id);
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    db.raw.exec('UPDATE products SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [item.quantity, item.product_id]);
+    var variant = findVariant(db, item.product_id, item.product_size, item.product_color);
+    if (variant) {
+      db.raw.exec('UPDATE product_variants SET quantity = quantity + ? WHERE id = ?', [item.quantity, variant.id]);
+    }
+  }
+
+  var employee = db.prepare('SELECT points FROM employees WHERE id = ?').get(o.employee_id);
+  var balance = employee ? employee.points : 0;
+
+  if (o.points_used > 0) {
+    balance += o.points_used;
+    db.raw.exec('UPDATE employees SET points = points + ?, points_total_spent = points_total_spent - ? WHERE id = ?', [o.points_used, o.points_used, o.employee_id]);
+    db.raw.exec('INSERT INTO point_transactions (employee_id, points, balance_after, type, reference_type, reference_id, note) VALUES (?, ?, ?, ?, ?, ?, ?)', [o.employee_id, o.points_used, balance, 'earn', 'order', o.id, '取消訂單退回抵扣點數']);
+  }
+  if (o.points_earned > 0) {
+    balance -= o.points_earned;
+    db.raw.exec('UPDATE employees SET points = points - ?, points_total_earned = points_total_earned - ? WHERE id = ?', [o.points_earned, o.points_earned, o.employee_id]);
+    db.raw.exec('INSERT INTO point_transactions (employee_id, points, balance_after, type, reference_type, reference_id, note) VALUES (?, ?, ?, ?, ?, ?, ?)', [o.employee_id, -o.points_earned, balance, 'spend', 'order', o.id, '取消訂單收回積點']);
+  }
+
+  db.raw.exec("UPDATE orders SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?", [o.id]);
+}
+
 // ---- Cart routes (DB-based, per user) ----
 
 router.get('/cart', reqAuth, (req, res) => {
@@ -64,7 +99,7 @@ router.get('/cart', reqAuth, (req, res) => {
   var anyDisallowPoints = items.some(function(i) { return !i.allow_points_discount; });
   var user = db.prepare('SELECT points FROM employees WHERE id = ?').get(userId);
   var userPoints = user ? user.points : 0;
-  res.render('orders/cart', { title: 'Cart', items, total, userPoints, anyDisallowPoints });
+  res.render('orders/cart', { title: '購物車', items, total, userPoints, anyDisallowPoints });
 });
 
 router.post('/cart/add', reqAuth, (req, res) => {
@@ -75,10 +110,10 @@ router.post('/cart/add', reqAuth, (req, res) => {
   }
   const pid = parseInt(req.body.product_id);
   const qty = parseInt(req.body.quantity) || 1;
-  if (qty < 1) { req.flash('error', 'Qty > 0'); return redirectBack(); }
+  if (qty < 1) { req.flash('error', '購買數量必須大於 0'); return redirectBack(); }
   const db = getDB();
   const p = db.prepare('SELECT * FROM products WHERE id = ? AND is_active = 1').get(pid);
-  if (!p) { req.flash('error', 'Not found'); return redirectBack(); }
+  if (!p) { req.flash('error', '找不到該商品或商品已下架'); return redirectBack(); }
 
   var pSizes = []; var pColors = [];
   try { pSizes = JSON.parse(p.sizes || '[]'); } catch(e){}
@@ -95,6 +130,13 @@ router.post('/cart/add', reqAuth, (req, res) => {
   var need = currentQty + qty;
   if (p.quantity < need) { req.flash('error', '\u5eab\u5b58\u4e0d\u8db3'); return redirectBack(); }
 
+  // 若此尺寸/顏色有獨立規格庫存，須額外檢查
+  var variant = findVariant(db, pid, selSize, selColor);
+  if (variant && variant.quantity < need) {
+    req.flash('error', '此尺寸／顏色庫存不足，僅剩 ' + variant.quantity + ' 件');
+    return redirectBack();
+  }
+
   if (existing) {
     db.raw.exec('UPDATE cart_items SET quantity = quantity + ? WHERE employee_id = ? AND product_id = ? AND selected_size = ? AND selected_color = ?', [qty, userId, pid, selSize, selColor]);
   } else {
@@ -110,9 +152,15 @@ router.post('/cart/update', reqAuth, (req, res) => {
   const sz = req.body.size || '';
   const cl = req.body.color || '';
   var userId = req.session.user.id;
+  var db = getDB();
   if (qty <= 0) {
     db.raw.exec('DELETE FROM cart_items WHERE employee_id = ? AND product_id = ? AND selected_size = ? AND selected_color = ?', [userId, pid, sz, cl]);
   } else {
+    var variant = findVariant(db, pid, sz, cl);
+    if (variant && variant.quantity < qty) {
+      req.flash('error', '此尺寸／顏色庫存不足，僅剩 ' + variant.quantity + ' 件');
+      return res.redirect('/orders/cart');
+    }
     db.raw.exec('UPDATE cart_items SET quantity = ? WHERE employee_id = ? AND product_id = ? AND selected_size = ? AND selected_color = ?', [qty, userId, pid, sz, cl]);
   }
   res.redirect('/orders/cart');
@@ -120,9 +168,11 @@ router.post('/cart/update', reqAuth, (req, res) => {
 
 router.post('/cart/remove', reqAuth, (req, res) => {
   const pid = parseInt(req.body.product_id);
+  const sz = req.body.size || '';
+  const cl = req.body.color || '';
   var userId = req.session.user.id;
   var db = getDB();
-  db.raw.exec('DELETE FROM cart_items WHERE employee_id = ? AND product_id = ?', [userId, pid]);
+  db.raw.exec('DELETE FROM cart_items WHERE employee_id = ? AND product_id = ? AND selected_size = ? AND selected_color = ?', [userId, pid, sz, cl]);
   res.redirect('/orders/cart');
 });
 
@@ -132,7 +182,7 @@ router.post('/checkout', reqAuth, (req, res) => {
   const db = getDB();
   var userId = req.session.user.id;
   const cartRows = db.prepare('SELECT c.*, p.price, p.quantity as stock, p.allow_points_discount, p.earn_points FROM cart_items c JOIN products p ON p.id = c.product_id WHERE c.employee_id = ?').all(userId);
-  if (cartRows.length === 0) { req.flash('error', 'Empty'); return res.redirect('/orders/cart'); }
+  if (cartRows.length === 0) { req.flash('error', '購物車是空的，請先加入商品'); return res.redirect('/orders/cart'); }
 
   var paymentMethod = req.body.payment_method || '';
   if (!paymentMethod) { req.flash('error', '\u8acb\u9078\u64c7\u4ed8\u6b3e\u65b9\u5f0f'); return res.redirect('/orders/cart'); }
@@ -146,8 +196,12 @@ router.post('/checkout', reqAuth, (req, res) => {
     var allEarnPoints = true;
     for (const row of cartRows) {
       var p = db.prepare('SELECT * FROM products WHERE id = ? AND is_active = 1').get(row.product_id);
-      if (!p) throw new Error('Not found: ' + row.product_id);
-      if (p.quantity < row.quantity) throw new Error('Stock insufficient: ' + p.name);
+      if (!p) throw new Error('購物車中有商品已下架或不存在，請返回購物車重新確認');
+      if (p.quantity < row.quantity) throw new Error('「' + p.name + '」庫存不足，請返回購物車調整數量');
+      var variant = findVariant(db, row.product_id, row.selected_size, row.selected_color);
+      if (variant && variant.quantity < row.quantity) {
+        throw new Error('「' + p.name + '」所選尺寸／顏色庫存不足，請返回購物車調整數量');
+      }
       total += p.price * row.quantity;
       if (!p.allow_points_discount) allAllowPoints = false;
       if (!p.earn_points) allEarnPoints = false;
@@ -170,6 +224,10 @@ router.post('/checkout', reqAuth, (req, res) => {
       var p = db.prepare('SELECT price FROM products WHERE id = ?').get(row.product_id);
       db.raw.exec('INSERT INTO order_items (order_id, product_id, quantity, unit_price, product_size, product_color) VALUES (?, ?, ?, ?, ?, ?)', [oid, row.product_id, row.quantity, p.price, row.selected_size || '', row.selected_color || '']);
       db.raw.exec('UPDATE products SET quantity = quantity - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [row.quantity, row.product_id]);
+      var v = findVariant(db, row.product_id, row.selected_size, row.selected_color);
+      if (v) {
+        db.raw.exec('UPDATE product_variants SET quantity = quantity - ? WHERE id = ?', [row.quantity, v.id]);
+      }
     }
 
     // Deduct used points
@@ -206,14 +264,14 @@ router.post('/checkout', reqAuth, (req, res) => {
 
 router.get('/', reqAdmin, (req, res) => {
   const db = getDB();
-  const orders = db.prepare("SELECT o.*, e.display_name, e.store, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.payment_method != 'transfer' OR o.payment_status = 'paid' ORDER BY o.created_at DESC").all();
-  res.render('orders/index', { title: 'All Orders', orders, myOrders: false, statusLabel });
+  const orders = db.prepare("SELECT o.*, e.display_name, e.store, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id ORDER BY o.created_at DESC").all();
+  res.render('orders/index', { title: '所有訂單', orders, myOrders: false, statusLabel });
 });
 
 router.get('/my', reqAuth, (req, res) => {
   const db = getDB();
   const orders = db.prepare("SELECT o.*, e.display_name, e.store, (SELECT COUNT(1) FROM order_items WHERE order_id = o.id) as items_count, (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = o.id) as total_amount FROM orders o JOIN employees e ON e.id = o.employee_id WHERE o.employee_id = ? ORDER BY o.created_at DESC").all(req.session.user.id);
-  res.render('orders/index', { title: 'My Orders', orders, myOrders: true, statusLabel });
+  res.render('orders/index', { title: '我的訂單', orders, myOrders: true, statusLabel });
 });
 
 // ---- Export ----
@@ -280,7 +338,7 @@ router.get('/:id', reqAuth, (req, res) => {
 router.post('/:id/cancel', reqAuth, (req, res) => {
   const db = getDB();
   const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
-  if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
+  if (!o) { req.flash('error', '找不到該訂單'); return res.redirect('/orders/my'); }
   if (req.session.user.role !== 'admin' && o.employee_id !== req.session.user.id) {
     req.flash('error', '\u7121\u6b0a\u53d6\u6d88\u6b64\u8a02\u55ae');
     return res.redirect('/orders/' + o.id);
@@ -293,25 +351,8 @@ router.post('/:id/cancel', reqAuth, (req, res) => {
     req.flash('error', '\u8a02\u55ae\u5df2\u63a5\u53d7\uff0c\u7121\u6cd5\u53d6\u6d88');
     return res.redirect('/orders/' + o.id);
   }
-  const cancel = db.transaction(() => {
-    const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(o.id);
-    for (const item of items) { db.raw.exec('UPDATE products SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [item.quantity, item.product_id]); }
-    if (o.points_used > 0 || o.points_earned > 0) {
-      var employee = db.prepare('SELECT * FROM employees WHERE id = ?').get(o.employee_id);
-      if (o.points_used > 0) {
-        db.raw.exec('UPDATE employees SET points = points + ?, points_total_spent = points_total_spent - ? WHERE id = ?', [o.points_used, o.points_used, o.employee_id]);
-        db.raw.exec('INSERT INTO point_transactions (employee_id, points, balance_after, type, reference_type, reference_id, note) VALUES (?, ?, ?, ?, ?, ?, ?)', [o.employee_id, o.points_used, employee.points + o.points_used, 'earn', 'order', o.id, '\u53d6\u6d88\u8a02\u55ae\u9000\u56de\u62b5\u6263\u9ede\u6578']);
-      }
-      if (o.points_earned > 0) {
-        var balAfterRefund = employee.points + (o.points_used || 0);
-        db.raw.exec('UPDATE employees SET points = points - ?, points_total_earned = points_total_earned - ? WHERE id = ?', [o.points_earned, o.points_earned, o.employee_id]);
-        db.raw.exec('INSERT INTO point_transactions (employee_id, points, balance_after, type, reference_type, reference_id, note) VALUES (?, ?, ?, ?, ?, ?, ?)', [o.employee_id, -o.points_earned, balAfterRefund - o.points_earned, 'spend', 'order', o.id, '\u53d6\u6d88\u8a02\u55ae\u6536\u56de\u7a4d\u9ede']);
-      }
-    }
-    db.raw.exec("UPDATE orders SET status = 'cancelled' WHERE id = ?", [o.id]);
-  });
-  cancel();
-  req.flash('success', 'Order #' + o.id + ' cancelled');
+  db.transaction(() => { cancelOrderInTx(db, o); })();
+  req.flash('success', '訂單 #' + o.id + ' 已取消，庫存與積點已回補');
   res.redirect('/orders/' + o.id);
 });
 
@@ -320,11 +361,11 @@ router.post('/:id/cancel', reqAuth, (req, res) => {
 router.post('/:id/advance', reqAdmin, (req, res) => {
   const db = getDB();
   const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
-  if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
+  if (!o) { req.flash('error', '找不到該訂單'); return res.redirect('/orders'); }
   const next = NEXT_STATUS[o.status];
-  if (!next) { req.flash('error', 'Cannot advance'); return res.redirect('/orders/' + o.id); }
-  db.raw.exec('UPDATE orders SET status = ? WHERE id = ?', [next, o.id]);
-  req.flash('success', 'Order #' + o.id + ' ' + statusLabel(next));
+  if (!next) { req.flash('error', '此訂單狀態無法再推進'); return res.redirect('/orders/' + o.id); }
+  db.raw.exec('UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [next, o.id]);
+  req.flash('success', '訂單 #' + o.id + ' 已更新為「' + statusLabel(next) + '」');
   res.redirect('/orders/' + o.id);
 });
 
@@ -333,7 +374,7 @@ router.post('/:id/advance', reqAdmin, (req, res) => {
 router.post('/:id/pay', reqAuth, (req, res) => {
   const db = getDB();
   const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
-  if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
+  if (!o) { req.flash('error', '找不到該訂單'); return res.redirect('/orders/my'); }
   if (o.employee_id !== req.session.user.id && req.session.user.role !== 'admin') {
     req.flash('error', '\u7121\u6b0a\u9650\u64cd\u4f5c'); return res.redirect('/orders');
   }
@@ -354,7 +395,7 @@ router.post('/:id/change-payment', reqAuth, (req, res) => {
   try {
     const db = getDB();
     const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id));
-    if (!o) { req.flash('error', 'Not found'); return res.redirect('/orders'); }
+    if (!o) { req.flash('error', '找不到該訂單'); return res.redirect('/orders/my'); }
     if (o.employee_id !== req.session.user.id && req.session.user.role !== 'admin') {
       req.flash('error', '\u7121\u6b0a\u9650\u64cd\u4f5c'); return res.redirect('/orders');
     }
@@ -404,24 +445,14 @@ router.post('/batch-status', reqAdmin, (req, res) => {
     ids.forEach(function(id) {
       var o = db.prepare('SELECT status FROM orders WHERE id = ?').get(id);
       if (o && cfg.from.indexOf(o.status) >= 0) {
-        // For cancel, also handle points/stock refund like single cancel
         if (action === 'cancel') {
           var fullOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
           if (fullOrder) {
-            var items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(id);
-            for (const item of items) { db.raw.exec('UPDATE products SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [item.quantity, item.product_id]); }
-            if (fullOrder.points_used > 0 || fullOrder.points_earned > 0) {
-              var emp = db.prepare('SELECT * FROM employees WHERE id = ?').get(fullOrder.employee_id);
-              if (fullOrder.points_used > 0) {
-                db.raw.exec('UPDATE employees SET points = points + ?, points_total_spent = points_total_spent - ? WHERE id = ?', [fullOrder.points_used, fullOrder.points_used, fullOrder.employee_id]);
-              }
-              if (fullOrder.points_earned > 0) {
-                db.raw.exec('UPDATE employees SET points = points - ?, points_total_earned = points_total_earned - ? WHERE id = ?', [fullOrder.points_earned, fullOrder.points_earned, fullOrder.employee_id]);
-              }
-            }
+            cancelOrderInTx(db, fullOrder);
           }
+        } else {
+          db.raw.exec('UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [cfg.status, id]);
         }
-        db.raw.exec('UPDATE orders SET status = ? WHERE id = ?', [cfg.status, id]);
       }
     });
   });

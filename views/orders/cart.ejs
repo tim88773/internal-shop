@@ -45,6 +45,8 @@
               <td>
                 <form action="/orders/cart/remove" method="POST">
                   <input type="hidden" name="product_id" value="<%= item.id %>">
+                  <input type="hidden" name="size" value="<%= item.selectedSize %>">
+                  <input type="hidden" name="color" value="<%= item.selectedColor %>">
                   <button type="submit" class="btn btn-danger btn-sm">移除</button>
                 </form>
               </td>

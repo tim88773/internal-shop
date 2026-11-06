@@ -306,29 +306,41 @@ function calcTotalVariantQuantity(db, productId) {
   return row ? row.total : 0;
 }
 
-function saveVariants(db, productId, variantsText) {
-  // Delete existing variants
+function saveVariants(db, productId, variantsText, fallbackQuantity) {
+  // 先清空此商品既有的規格資料
   db.raw.exec('DELETE FROM product_variants WHERE product_id = ?', [productId]);
-  // Parse each line: size, color, qty
-  var lines = (variantsText || '').split(String.fromCharCode(10,13).replace(/[^0-9A-Za-z\u4e00-\u9fff,\s]/g,String.fromCharCode(10))).filter(Boolean);
-  // Simpler approach: split by newline
-  var rows = variantsText.split(/\r?\n/).filter(Boolean);
+
+  var text = (variantsText == null ? '' : String(variantsText));
+  var rows = text.split(/\r?\n/).filter(function(line) { return line.trim() !== ''; });
   var insertV = db.prepare('INSERT INTO product_variants (product_id, size, color, quantity) VALUES (?, ?, ?, ?)');
+  var validCount = 0;
+
   for (var i = 0; i < rows.length; i++) {
-    var parts = rows[i].split(',').map(function(s){return s.trim();});
+    var parts = rows[i].split(',').map(function(s) { return s.trim(); });
     if (parts.length >= 3) {
       var sz = parts[0] || '';
       var cl = parts[1] || '';
-      var qty = parseInt(parts[2]) || 0;
-      if (qty > 0) {
+      var qty = parseInt(parts[2]);
+      if (!isNaN(qty) && qty > 0) {
         insertV.run(productId, sz, cl, qty);
+        validCount++;
       }
     }
   }
-  // Update the product's global quantity to sum of variants
-  var total = calcTotalVariantQuantity(db, productId);
-  db.raw.exec('UPDATE products SET quantity = ? WHERE id = ?', [total, productId]);
-  return total;
+
+  // 僅在表單有填寫變體、且解析出有效變體時，才以變體加總覆寫商品總庫存
+  if (rows.length > 0 && validCount > 0) {
+    var total = calcTotalVariantQuantity(db, productId);
+    db.raw.exec('UPDATE products SET quantity = ? WHERE id = ?', [total, productId]);
+    return total;
+  }
+
+  // 未填寫變體：保留表單送出的總庫存（若未提供則不動）
+  if (typeof fallbackQuantity === 'number' && !isNaN(fallbackQuantity)) {
+    db.raw.exec('UPDATE products SET quantity = ? WHERE id = ?', [fallbackQuantity, productId]);
+    return fallbackQuantity;
+  }
+  return null;
 }
 // ============================================
 //  Regular routes
@@ -404,18 +416,20 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
   var colorsArr = (req.body.colors || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
   var allowPts = req.body.allow_points_discount ? 1 : 0;
   var earnPts = req.body.earn_points ? 1 : 0;
+  var initQuantity = parseInt(quantity);
+  if (isNaN(initQuantity) || initQuantity < 0) initQuantity = 0;
 
   var insertResult = db.prepare('INSERT INTO products (name, description, price, original_price, category_id, quantity, defect_reason, store, image_url, sizes, colors, style_code, allow_points_discount, earn_points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
     name, description || '', parseFloat(price) || 0,
     original_price ? parseFloat(original_price) : null,
     category_id ? Number(category_id) : null,
-    0,
+    initQuantity,
     defect_reason || '',
     storeVal,
-    req.body.style_code || '',
     coverUrl || null,
     JSON.stringify(sizesArr),
     JSON.stringify(colorsArr),
+    req.body.style_code || '',
     allowPts,
     earnPts
   );
@@ -423,7 +437,7 @@ router.post('/new', requireAdmin, uploadFields, (req, res) => {
   var pid = Number(insertResult.lastInsertRowid);
 
   // Handle variants
-  saveVariants(db, pid, req.body.variants || '');
+  saveVariants(db, pid, req.body.variants || '', initQuantity);
 
   if (req.files && req.files.gallery) {
     var galleryFiles = req.files.gallery;
@@ -454,6 +468,12 @@ router.get('/:id', requireAuth, (req, res) => {
   }
 
   const images = getProductImages(db, pid);
+
+  // 封面圖（products.image_url）若未包含在圖庫中，補為第一張主圖
+  var detailImages = images.slice();
+  if (product.image_url && !detailImages.some(function(img) { return img.image_url === product.image_url; })) {
+    detailImages.unshift({ id: 0, product_id: pid, image_url: product.image_url, sort_order: -1, is_cover: 1 });
+  }
   const related = db.prepare('SELECT * FROM products WHERE is_active = 1 AND id != ? ORDER BY created_at DESC LIMIT 4').all(pid);
 
   var inCart = 0;
@@ -463,7 +483,8 @@ router.get('/:id', requireAuth, (req, res) => {
   var productSizes = []; var productColors = [];
   try { productSizes = JSON.parse(product.sizes || '[]'); } catch(e) {}
   try { productColors = JSON.parse(product.colors || '[]'); } catch(e) {}
-  res.render('products/detail', { title: product.name, product, images, related, inCart, productSizes: productSizes, productColors: productColors });
+  var variants = getVariants(db, pid);
+  res.render('products/detail', { title: product.name, product, images: detailImages, related, inCart, productSizes: productSizes, productColors: productColors, variants: variants });
 });
 
 router.get('/:id/edit', requireAdmin, (req, res) => {
@@ -530,7 +551,9 @@ router.post('/:id/edit', requireAdmin, uploadFields, (req, res) => {
   db.raw.exec('UPDATE products SET ' + updates.join(', ') + ', updated_at = CURRENT_TIMESTAMP WHERE id = ?', params);
 
   // Save variants
-  saveVariants(db, pid, req.body.variants || '');
+  var editQuantity = parseInt(quantity);
+  if (isNaN(editQuantity) || editQuantity < 0) editQuantity = 0;
+  saveVariants(db, pid, req.body.variants || '', editQuantity);
 
   req.flash('success', '\u5546\u54c1\u300c' + name + '\u300d\u5df2\u66f4\u65b0');
   res.redirect('/products/manage');

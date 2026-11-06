@@ -94,16 +94,67 @@
             </div>
             <% } %>
           </div>
+          <% if (typeof variants !== 'undefined' && variants && variants.length > 0) { %>
+          <div id="variantStockInfo" style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text-secondary);"></div>
+          <% } %>
           <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border);">
             <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
               <div>
                 <label for="qty" style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px;">數量</label>
                 <input type="number" id="qty" name="quantity" value="1" min="1" max="<%= product.quantity %>" style="width:70px;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
               </div>
-              <button type="submit" class="btn btn-primary" style="padding:12px 28px;font-size:15px;">&#x1F6D2; 加入購物車</button>
+              <button type="submit" id="addToCartBtn" class="btn btn-primary" style="padding:12px 28px;font-size:15px;">&#x1F6D2; 加入購物車</button>
             </div>
           </div>
         </form>
+        <% if (typeof variants !== 'undefined' && variants && variants.length > 0) { %>
+        <%
+          var stockMap = {};
+          variants.forEach(function(v) { stockMap[(v.size || '') + '|' + (v.color || '')] = v.quantity; });
+        %>
+        <script>
+        (function() {
+          var stockMap = <%- JSON.stringify(stockMap).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') %>;
+          var sizeSel = document.getElementById('size');
+          var colorSel = document.getElementById('color');
+          var infoEl = document.getElementById('variantStockInfo');
+          var qtyInput = document.getElementById('qty');
+          var submitBtn = document.getElementById('addToCartBtn');
+          function setEnabled(ok) {
+            if (!submitBtn) return;
+            submitBtn.disabled = !ok;
+            submitBtn.style.opacity = ok ? '1' : '0.5';
+            submitBtn.style.cursor = ok ? 'pointer' : 'not-allowed';
+          }
+          function updateStock() {
+            var s = sizeSel ? sizeSel.value : '';
+            var c = colorSel ? colorSel.value : '';
+            if ((sizeSel && !s) || (colorSel && !c)) {
+              infoEl.textContent = '請選擇尺寸與顏色以查看庫存';
+              infoEl.style.color = 'var(--text-secondary)';
+              setEnabled(true);
+              return;
+            }
+            var key = s + '|' + c;
+            var has = Object.prototype.hasOwnProperty.call(stockMap, key);
+            var qty = has ? stockMap[key] : 0;
+            if (!has || qty <= 0) {
+              infoEl.textContent = has ? '該規格已售罄' : '此尺寸／顏色組合目前無庫存';
+              infoEl.style.color = 'var(--danger)';
+              setEnabled(false);
+              return;
+            }
+            infoEl.textContent = '此規格剩餘庫存：' + qty + ' 件';
+            infoEl.style.color = 'var(--success)';
+            if (qtyInput) { qtyInput.max = qty; if (Number(qtyInput.value) > qty) qtyInput.value = qty; }
+            setEnabled(true);
+          }
+          if (sizeSel) sizeSel.addEventListener('change', updateStock);
+          if (colorSel) colorSel.addEventListener('change', updateStock);
+          updateStock();
+        })();
+        </script>
+        <% } %>
         <% if (inCart > 0) { %>
           <div style="margin-top:8px;font-size:13px;color:var(--success);">已在購物車中的數量：<%= inCart %></div>
         <% } %>

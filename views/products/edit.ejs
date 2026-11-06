@@ -103,12 +103,16 @@
           </div>
           <div class="text-muted" style="font-size:12px;margin-top:4px;">目前 <%= images.length %> 張圖片</div>
         <% } %>
-      <div class="form-group">
-        <label for="variants">颜色尺寸库存明细（选填，进阶设定）</label>
-        <textarea id="variants" name="variants" placeholder="每行一笔：尺寸, 颜色, 库存数量\n范例：\nS, 黑色, 10\nM, 黑色, 15\nL, 白色, 8" style="min-height:80px;font-family:monospace;font-size:13px;"><%= typeof variantsText !== 'undefined' ? variantsText : '' %></textarea>
-        <div class="text-muted" style="font-size:12px;margin-top:4px;">若填写此栏位，系统将以此为准计算各颜色尺寸的库存量。修改后请点选「更新商品」保存</div>
       </div>
 
+      <div class="form-group">
+        <label for="variants">顏色尺寸庫存明細（選填，進階設定）</label>
+        <textarea id="variants" name="variants" placeholder="每行一筆：尺寸, 顏色, 庫存數量
+範例：
+S, 黑色, 10
+M, 黑色, 15
+L, 白色, 8" style="min-height:80px;font-family:monospace;font-size:13px;"><%= typeof variantsText !== 'undefined' ? variantsText : '' %></textarea>
+        <div class="text-muted" style="font-size:12px;margin-top:4px;">若填寫此欄位，系統將以此為準計算各顏色尺寸的庫存總量。修改後請點選「更新商品」儲存。</div>
       </div>
 
       <div class="form-check mb-4">

@@ -3,7 +3,7 @@
     <h1 style="font-size:22px;font-weight:700;">庫存管理</h1>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <span style="font-size:13px;color:var(--text-secondary);">
-        低庫存商品 <strong style="color=<%= lowStockCount > 0 ? 'var(--danger)' : 'var(--success)' %>;"><%= lowStockCount %></strong> 項
+        低庫存商品 <strong style="color:<%= lowStockCount > 0 ? 'var(--danger)' : 'var(--success)' %>;"><%= lowStockCount %></strong> 項
       </span>
       <form action="/inventory/recalc-all" method="POST" style="display:inline;">
         <button type="submit" class="btn btn-outline btn-sm">重新計算總庫存</button>
@@ -118,27 +118,27 @@ TS-002, F, 白色, 20</pre>
               <div></div>
             </div>
             <% p.variants.forEach(function(v) { %>
-            <form action="/inventory/update-variant" method="POST" style="display:contents;">
-              <input type="hidden" name="variant_id" value="<%= v.id %>">
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:6px;background:#f8fafc;margin-bottom:4px;">
-                <div style="font-size:14px;font-weight:500;"><%= v.size %></div>
-                <div style="font-size:14px;"><%= v.color %></div>
-                <div>
-                  <input type="number" name="quantity" value="<%= v.quantity %>" min="0"
-                    style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:14px;text-align:right;float:right;"
-                    onchange="this.form.submit()">
-                </div>
-                <div>
-                  <button type="submit" class="btn btn-sm btn-success" style="padding:6px 10px;font-size:12px;display:none;" id="save-<%= v.id %>">儲存</button>
-                </div>
-                <div>
-                  <form action="/inventory/delete-variant" method="POST" style="display:inline;" onsubmit="return confirm('確定刪除此規格庫存？')">
-                    <input type="hidden" name="variant_id" value="<%= v.id %>">
-                    <button type="submit" class="btn btn-sm btn-danger" style="padding:6px 8px;font-size:12px;">&#x2715;</button>
-                  </form>
-                </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:6px;background:#f8fafc;margin-bottom:4px;">
+              <form id="upd-<%= v.id %>" action="/inventory/update-variant" method="POST" style="display:none;">
+                <input type="hidden" name="variant_id" value="<%= v.id %>">
+              </form>
+              <form id="del-<%= v.id %>" action="/inventory/delete-variant" method="POST" style="display:none;" onsubmit="return confirm('確定刪除此規格庫存？')">
+                <input type="hidden" name="variant_id" value="<%= v.id %>">
+              </form>
+              <div style="font-size:14px;font-weight:500;"><%= v.size %></div>
+              <div style="font-size:14px;"><%= v.color %></div>
+              <div>
+                <input type="number" name="quantity" form="upd-<%= v.id %>" value="<%= v.quantity %>" min="0"
+                  style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:14px;text-align:right;float:right;"
+                  onchange="document.getElementById('upd-<%= v.id %>').submit()">
               </div>
-            </form>
+              <div>
+                <button type="submit" form="upd-<%= v.id %>" class="btn btn-sm btn-success" style="padding:6px 10px;font-size:12px;">儲存</button>
+              </div>
+              <div>
+                <button type="submit" form="del-<%= v.id %>" class="btn btn-sm btn-danger" style="padding:6px 8px;font-size:12px;">&#x2715;</button>
+              </div>
+            </div>
             <% }); %>
           <% } %>
 
